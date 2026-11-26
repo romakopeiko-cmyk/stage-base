@@ -140,6 +140,7 @@ begin
         or not exists (
           select 1 from public.assets a where a.id = item.asset_id
             and stage_operations.reservation_asset_visible(a.show_id, a.warehouse_id, a.is_marketing_asset)
+          for update
         ) then
       raise exception 'Майно або кількість недоступні';
     end if;
@@ -179,6 +180,9 @@ begin
   end if;
 
   if approve then
+    if not exists (select 1 from public.shows where id = request.show_id and status = 'active') then
+      raise exception 'Шоу бронювання неактивне';
+    end if;
     if request.end_date <= now() or not exists (
       select 1 from public.reservation_items where reservation_id = reservation
     ) then
