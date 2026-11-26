@@ -2,16 +2,16 @@
 do $$
 declare
   client text;
-  relation text;
+  relation record;
   field text;
 begin
   foreach client in array array['anon','authenticated'] loop
-    foreach relation in array array[
-      'access_grants','asset_events','asset_finance','asset_photos','assets',
-      'notifications','profiles','roles','shows','user_show_access','warehouses'
-    ] loop
-      if has_table_privilege(client,'public.'||relation,'TRUNCATE, TRIGGER') then
-        raise exception 'Excess table privilege on % for %',relation,client;
+    for relation in select n.nspname,c.relname from pg_class c
+      join pg_namespace n on n.oid=c.relnamespace
+      where n.nspname in ('public','stage_operations') and c.relkind in ('r','p')
+    loop
+      if has_table_privilege(client,format('%I.%I',relation.nspname,relation.relname),'TRUNCATE, TRIGGER') then
+        raise exception 'Excess table privilege on %.% for %',relation.nspname,relation.relname,client;
       end if;
     end loop;
     for field in select column_name from information_schema.columns
