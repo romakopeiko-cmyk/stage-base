@@ -41,6 +41,11 @@ function taskCard(task, draggable = false) {
     </span>`;
   open.onclick = () => taskForm(task);
   card.append(open);
+  const details = document.createElement('button');
+  details.className = 'full';
+  details.textContent = 'Обговорення та підзавдання';
+  details.onclick = () => openTaskDetails(task);
+  card.append(details);
   if (draggable) {
     card.draggable = true;
     card.ondragstart = event => event.dataTransfer.setData('text/plain', String(task.id));
