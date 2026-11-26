@@ -231,9 +231,63 @@ async function renderInbox() {
  await loadMore();
 }
 
-async function liveExtra(id){try{const a=records.find(x=>x.id===id);const [parts,checks,history]=await Promise.all([take(db.from('asset_components').select('id,name,quantity,condition').eq('asset_id',id)),take(db.from('inspections').select('id,status,deadline_at,inspection_type').eq('asset_id',id)),take(db.from('audit_log').select('id,actor_name,description,created_at').eq('asset_id',id).order('created_at',{ascending:false}).limit(100))]);if(page!=='detail'||active?.id!==id)return;const el=document.querySelector('#liveextra');el.innerHTML=(a.tracking_type==='set'?'<h2>Складові комплекту</h2>'+parts.map(p=>'<div class="line">'+esc(p.name)+' · '+esc(p.quantity)+' шт. · '+esc(cond(p.condition))+'</div>').join('')+(editOK()&&a.condition==='unverified'?'<button class="full" onclick="livePart()">＋ Додати складову</button>':''):'')+'<h2>Перевірки</h2>'+checks.map(i=>'<div class="line">'+esc(i.status==='completed'?'Завершено':'Очікує перевірки')+' · '+esc(new Date(i.deadline_at).toLocaleDateString('uk-UA'))+'</div>').join('')+(createOK()&&checks.some(i=>i.status!=='completed')&&a.tracking_type!=='set'?'<button class="primary full" onclick="liveInspect()">Завершити перевірку</button>':'')+'<h2>Історія</h2>'+history.map(h=>'<div class="line">'+esc(h.description)+'<br><small>'+esc(h.actor_name)+' · '+esc(new Date(h.created_at).toLocaleString('uk-UA'))+'</small></div>').join('')}catch(e){fail(e)}}
+async function liveExtra(id){try{const a=records.find(x=>x.id===id);const [parts,checks,history]=await Promise.all([take(db.from('asset_components').select('id,name,quantity,condition').eq('asset_id',id)),take(db.from('inspections').select('id,status,deadline_at,inspection_type').eq('asset_id',id)),take(db.from('audit_log').select('id,actor_name,description,created_at').eq('asset_id',id).order('created_at',{ascending:false}).limit(100))]);if(page!=='detail'||active?.id!==id)return;const el=document.querySelector('#liveextra');el.innerHTML=(a.tracking_type==='set'?'<h2>Складові комплекту</h2>'+parts.map(p=>'<div class="line">'+esc(p.name)+' · '+esc(p.quantity)+' шт. · '+esc(cond(p.condition))+'</div>').join('')+(editOK()&&a.condition==='unverified'?'<button class="full" onclick="livePart()">＋ Додати складову</button>':''):'')+'<h2>Перевірки</h2>'+checks.map(i=>'<div class="line">'+esc(i.status==='completed'?'Завершено':new Date(i.deadline_at)<new Date()?'Строк прострочено':'Очікує перевірки')+' · '+esc(new Date(i.deadline_at).toLocaleDateString('uk-UA'))+'</div>').join('')+(createOK()&&checks.some(i=>i.status!=='completed')?'<button class="primary full" id="finish-inspection">Завершити перевірку</button>':'')+'<h2>Історія</h2>'+history.map(h=>'<div class="line">'+esc(h.description)+'<br><small>'+esc(h.actor_name)+' · '+esc(new Date(h.created_at).toLocaleString('uk-UA'))+'</small></div>').join('');
+ const finish=el.querySelector('#finish-inspection');
+ if(finish)finish.onclick=()=>liveInspect(parts);
+ if(roleCode()==='executive_producer'&&checks.some(i=>i.status!=='completed')){
+  const deadline=document.createElement('button');
+  deadline.className='full';
+  deadline.textContent='Змінити строк перевірки';
+  deadline.onclick=liveChangeInspectionDeadline;
+  el.append(deadline);
+ }
+}catch(e){fail(e)}}
 function livePart(){const id=active.id;form('Складова комплекту',field('name','Назва')+'<label>Кількість<input type="number" name="quantity" min="1" step="1" value="1" required></label>',async d=>{try{await take(db.from('asset_components').insert({asset_id:id,name:d.get('name'),quantity:Number(d.get('quantity'))}));return true}catch(e){fail(e);return false}})}
-function liveInspect(){const id=active.id;form('Перевірка предмета','<p>Перед завершенням завантажте актуальне фото у картку.</p><label>Стан<select name="condition"><option value="good">Справний</option><option value="damaged">Пошкоджений</option><option value="unusable">Непридатний</option></select></label><label>Комплектність<select name="complete"><option value="true">Повна</option><option value="false">Неповна</option></select></label>'+field('comment','Коментар','text',false),async d=>{try{await take(db.rpc('complete_inspection',{p_asset:id,p_condition:d.get('condition'),p_complete:d.get('complete')==='true',p_comment:d.get('comment')}));await loadLive();active=records.find(x=>x.id===id);return true}catch(e){fail(e);return false}})}
+function liveInspect(parts){
+ const asset=active;
+ const set=asset.tracking_type==='set';
+ if(set&&!parts.length){
+  toast('Додайте складові комплекту перед перевіркою');
+  return;
+ }
+ const conditions='<option value="">Оберіть стан</option><option value="good">Справний</option><option value="damaged">Пошкоджений</option><option value="unusable">Непридатний</option>';
+ const checklist=set?parts.map(part=>`
+  <fieldset class="line"><legend>${esc(part.name)} · очікується ${esc(part.quantity)} шт.</legend>
+   <label>Фактична кількість<input name="actual" type="number" min="0" step="1" required></label>
+   <label>Стан складової<select name="part_condition" required>${conditions}</select></label>
+   ${field('part_comment','Коментар до складової','text',false)}
+  </fieldset>`).join(''):'<label>Комплектність<select name="complete"><option value="true">Повна</option><option value="false">Неповна</option></select></label>';
+ form('Перевірка майна','<p>Перед завершенням завантажте актуальне фото у картку.</p>'+
+  '<label>Стан майна<select name="condition" required>'+conditions+'</select></label>'+
+  checklist+field('comment','Коментар','text',false),async d=>{
+   const quantities=d.getAll('actual'), states=d.getAll('part_condition'), comments=d.getAll('part_comment');
+   try{
+    await take(db.rpc('stage_finish_inspection',{
+     p_asset:asset.id,p_condition:d.get('condition'),p_complete:set||d.get('complete')==='true',
+     p_comment:d.get('comment'),p_checklist:set?parts.map((part,i)=>({
+      id:part.id,quantity:Number(quantities[i]),condition:states[i],comment:comments[i]
+     })):[]
+    }));
+    await loadLive();
+    active=records.find(x=>x.id===asset.id);
+    return true;
+   }catch(e){fail(e);return false}
+ });
+}
+function liveChangeInspectionDeadline(){
+ const id=active.id;
+ form('Змінити строк перевірки',field('deadline','Новий строк','datetime-local')+
+  field('reason','Причина'),async d=>{
+   try{
+    await take(db.rpc('stage_change_inspection_deadline',{
+     p_asset:id,p_deadline:new Date(d.get('deadline')).toISOString(),p_reason:d.get('reason')
+    }));
+    await loadLive();
+    active=records.find(x=>x.id===id);
+    return true;
+   }catch(e){fail(e);return false}
+ });
+}
 
 page='login';render();loadLive().then(()=>{if(me)go('home')}).catch(e=>{me=null;render();fail(e)});
 </script></html>
