@@ -57,7 +57,7 @@ async function saveTask(task, values) {
 async function renderTasks() {
   const modes = { active: 'Список', board: 'Дошка', calendar: 'Календар', archive: 'Виконані' };
   app.innerHTML = `
-    <div class="task-heading"><h1>Мої завдання</h1><button class="primary" id="add-task">Нове завдання</button></div>
+    <div class="task-heading"><h1>Завдання</h1><button class="primary" id="add-task">Нове завдання</button></div>
     <div class="task-views" role="group" aria-label="Вигляд завдань">
       ${Object.entries(modes).map(([value, label]) => `<button type="button" data-mode="${value}">${label}</button>`).join('')}
     </div>
@@ -272,21 +272,4 @@ function renderTaskCalendar(container, tasks, { full = false, bookings = [] } = 
     }
   }
   draw();
-}
-
-async function loadTaskHome(section) {
-  try {
-    const tasks = (await readTasks()).filter(task => task.status !== 'done');
-    if (!section.isConnected) return;
-    renderTaskCalendar(section, tasks);
-    const overdue = tasks.filter(taskOverdue);
-    if (overdue.length) {
-      const heading = document.createElement('h2');
-      heading.textContent = 'Прострочені завдання';
-      section.append(heading);
-      overdue.slice(0, 3).forEach(task => section.append(taskCard(task)));
-    }
-  } catch (error) {
-    if (section.isConnected) section.textContent = 'Не вдалося оновити персональний календар.';
-  }
 }

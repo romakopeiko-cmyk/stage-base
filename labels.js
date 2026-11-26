@@ -172,9 +172,3 @@ window.addEventListener('pagehide', stopCamera);
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) stopCamera();
 });
-
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./offline.js').catch(error =>
-    console.warn('Stage Base: не вдалося увімкнути автономну сторінку', error)
-  );
-}
