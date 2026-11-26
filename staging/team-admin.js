@@ -22,8 +22,9 @@ async function renderTeamAdmin(rights) {
     ]);
     if (!content.isConnected) return;
     const names = new Map(members.map(member => [member.id, member.full_name]));
-    const manageable = members.filter(member => !member.is_admin && member.id !== me.id &&
-      !['executive_producer','creative_producer'].includes(roles.find(role => role.id === member.role_id)?.code));
+    const protectedMember = member => member.id === me.id ||
+      ['executive_producer','creative_producer'].includes(roles.find(role => role.id === member.role_id)?.code);
+    const manageable = members.filter(member => !member.is_admin && !protectedMember(member));
     content.innerHTML = '<div id="team-members" class="card"></div><details class="card"><summary>Журнал адміністративних дій</summary><div id="team-audit"></div></details>';
     for (const member of members) {
       const row = document.createElement('div');
@@ -37,7 +38,7 @@ async function renderTeamAdmin(rights) {
       edit.type = 'button';
       edit.className = 'full';
       edit.textContent = 'Редагувати';
-      edit.onclick = () => editTeamMember(member, rights, manageable.includes(member));
+      edit.onclick = () => editTeamMember(member, rights, !protectedMember(member));
       row.append(edit);
       if (rights.delegate && manageable.includes(member)) {
         const access = document.createElement('button');
@@ -82,15 +83,17 @@ async function renderTeamAdmin(rights) {
 }
 
 function editTeamMember(member, rights, manageable) {
-  const canDeactivate = rights.delegate && manageable;
+  const canManageAccess = rights.delegate && manageable;
   form('Профіль працівника', `
     <label>Ім’я та прізвище<input name="name" value="${esc(member.full_name)}" required maxlength="120"></label>
     <label>Посада<input name="job" value="${esc(member.job_title)}" maxlength="120"></label>
-    ${canDeactivate ? `<label><input type="checkbox" name="active" ${member.is_active ? 'checked' : ''}> Активний профіль</label>` : ''}`,
+    ${canManageAccess ? `<label><input type="checkbox" name="active" ${member.is_active ? 'checked' : ''}> Активний профіль</label>
+    <label><input type="checkbox" name="system_admin" ${member.is_admin ? 'checked' : ''}> Права системного адміністратора</label>` : ''}`,
     async data => {
       await take(db.rpc('stage_team_edit', {
         p_user: member.id, p_name: data.get('name'), p_job: data.get('job'), p_role: member.role_id,
-        p_active: canDeactivate ? data.has('active') : member.is_active, p_admin: member.is_admin
+        p_active: canManageAccess ? data.has('active') : member.is_active,
+        p_admin: canManageAccess ? data.has('system_admin') : member.is_admin
       }));
       toast('Профіль оновлено');
       modal.close();
@@ -230,7 +233,7 @@ async function editStageLimits(member, rights, manageable) {
   const options = manageable.filter(person => person.id !== member.id);
   form('Права доступу · ' + member.full_name, `
     <label>Копіювати права працівника<select id="copy-permissions"><option value="">Оберіть працівника</option>
-      ${options.map(person => `<option value="${esc(person.id)}">${esc(person.full_name)} · ${esc(person.id.slice(-8))}</option>`).join('')}
+      ${options.map(person => `<option value="${esc(person.id)}">${esc(person.full_name)} · ${esc(person.email || 'Пошту не вказано')}</option>`).join('')}
     </select></label>` + accessFields(current, current.limits || {}),
     async data => {
       await take(db.rpc('stage_team_limits', { p_user: member.id, p_limits: accessFrom(data) }));
