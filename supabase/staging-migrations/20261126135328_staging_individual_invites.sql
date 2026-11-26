@@ -1,6 +1,6 @@
 -- Stage Base Staging only.
 begin;
-alter table public.user_invitations add column job_title text, add column access_setup jsonb;
+alter table public.user_invitations add column job_title text, add column access_setup jsonb, add column requested_admin boolean not null default false;
 alter table public.stage_member_limits add column tasks_create boolean, add column shows_read boolean not null default true, add column warehouses_read boolean not null default true;
 update public.stage_member_limits set tasks_create=tasks_write;
 alter table public.stage_member_limits alter column tasks_create set not null, alter column tasks_create set default true;
@@ -45,7 +45,7 @@ $$;
 create or replace function public.stage_claim_team_invitation()
 returns boolean language plpgsql security definer set search_path=''
 as $$
-declare item public.user_invitations%rowtype; email_address text; role_code text;
+declare item public.user_invitations%rowtype; email_address text; role_code text; grant_admin boolean;
 begin
   perform pg_catalog.pg_advisory_xact_lock(708217955);
   if exists(select 1 from public.profiles where id=auth.uid()) then return false; end if;
@@ -58,9 +58,14 @@ begin
   if role_code is null or role_code in ('executive_producer','creative_producer') then return false; end if;
   select id into strict item.role_id from public.roles where code='employee';
   role_code:='employee';
+  select item.requested_admin and exists (
+    select 1 from public.profiles inviter join public.roles r on r.id=inviter.role_id
+    where inviter.id=item.invited_by and inviter.is_active and inviter.is_admin
+      and r.code in ('executive_producer','creative_producer')
+  ) into grant_admin;
   insert into public.profiles(id,display_name,role,active,full_name,role_id,is_active,is_admin)
     values(auth.uid(),item.full_name,case role_code when 'line_producer' then 'show_producer'
-      when 'employee' then 'staff' else role_code end,true,item.full_name,item.role_id,true,false);
+      when 'employee' then 'staff' else role_code end,true,item.full_name,item.role_id,true,grant_admin);
   update public.profiles set job_title=item.job_title where id=auth.uid();
   insert into public.stage_member_limits(user_id,show_ids,warehouse_ids,tasks_read,tasks_write,assets_read,tasks_create,shows_read,warehouses_read)
   select auth.uid(),array(select v::uuid from jsonb_array_elements_text(coalesce(nullif(item.access_setup->'show_ids','null'::jsonb),'[]'::jsonb)) v),
@@ -71,6 +76,9 @@ begin
     show_ids=case when item.access_setup->'show_ids'='null'::jsonb then null else show_ids end,
     warehouse_ids=case when item.access_setup->'warehouse_ids'='null'::jsonb then null else warehouse_ids end where user_id=auth.uid();
   update public.user_invitations set status='accepted',accepted_at=now() where id=item.id;
+  insert into public.stage_team_audit(actor,subject,action,changes)
+    values(auth.uid(),auth.uid(),'invitation.accepted',
+      jsonb_build_object('invitation_id',item.id,'system_admin',grant_admin));
   return true;
 end;
 $$;
@@ -120,7 +128,7 @@ begin
 end;
 $$;
 
-create function public.stage_prepare_individual_invitation(p_email text,p_name text,p_job text,p_access jsonb)
+create function public.stage_prepare_individual_invitation(p_email text,p_name text,p_job text,p_access jsonb,p_admin boolean default false)
 returns jsonb language plpgsql security definer set search_path=''
 as $$
 declare saved jsonb; role_uuid uuid; flag text;
@@ -141,15 +149,15 @@ begin
     ('tasks_read','tasks_write','tasks_create','shows_read','warehouses_read','assets_read','show_ids','warehouse_ids')) then raise invalid_parameter_value; end if;
   select id into strict role_uuid from public.roles where code='employee';
   saved:=public.stage_team_invitation_action('invite',null,p_email,p_name,role_uuid);
-  update public.user_invitations set job_title=nullif(btrim(p_job),''),access_setup=p_access where id=(saved->>'id')::uuid;
+  update public.user_invitations set job_title=nullif(btrim(p_job),''),access_setup=p_access,requested_admin=coalesce(p_admin,false) where id=(saved->>'id')::uuid;
   insert into public.stage_team_audit(actor,subject,action,changes)
-    values(auth.uid(),(saved->>'id')::uuid,'invitation.access',p_access);
+    values(auth.uid(),(saved->>'id')::uuid,'invitation.access',jsonb_build_object('access',p_access,'system_admin',coalesce(p_admin,false)));
   return saved;
 end;
 $$;
 
-revoke execute on function public.stage_prepare_individual_invitation(text,text,text,jsonb),public.stage_invite_configuration() from public,anon,authenticated;
-grant execute on function public.stage_prepare_individual_invitation(text,text,text,jsonb),public.stage_invite_configuration() to authenticated;
+revoke execute on function public.stage_prepare_individual_invitation(text,text,text,jsonb,boolean),public.stage_invite_configuration() from public,anon,authenticated;
+grant execute on function public.stage_prepare_individual_invitation(text,text,text,jsonb,boolean),public.stage_invite_configuration() to authenticated;
 
 create function public.stage_has_individual_access()
 returns boolean language sql stable security definer set search_path=''

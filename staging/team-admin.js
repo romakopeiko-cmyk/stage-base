@@ -118,9 +118,10 @@ function renderTeamActions(content, members, invitations, rights) {
       const options = await take(db.rpc('stage_invite_configuration'));
       form('Запросити працівника', '<label>Ім’я та прізвище<input name="name" maxlength="120" required></label>' +
         '<label>Електронна пошта<input name="email" type="email" required></label>' +
-        '<label>Посада<input name="job" maxlength="120"></label>' + accessFields(options),
+        '<label>Посада<input name="job" maxlength="120"></label>' +
+        '<label><input type="checkbox" name="system_admin"> Права системного адміністратора</label>' + accessFields(options),
         data => request({ action: 'invite', name: data.get('name'), email: data.get('email'),
-          job: data.get('job'), access: accessFrom(data) }), 'Надіслати запрошення');
+          job: data.get('job'), admin: data.has('system_admin'), access: accessFrom(data) }), 'Надіслати запрошення');
       bindAccessFields();
     } catch (error) { fail(error); }
   };

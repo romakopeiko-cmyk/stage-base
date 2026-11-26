@@ -24,12 +24,12 @@ Deno.serve(async request => {
     const userHeaders = { Authorization: token, apikey: anon, 'Content-Type': 'application/json' };
     const user = await fetch(url + '/auth/v1/user', { headers: userHeaders });
     if (!user.ok) return respond('Сесія недійсна', 401);
-    const { action, id, email, name, job, access } = await request.json();
+    const { action, id, email, name, job, access, admin } = await request.json();
     if (!['invite', 'resend', 'revoke'].includes(action)) return respond('Невідома дія', 400);
     const prepare = action === 'invite';
     const change = await fetch(url + '/rest/v1/rpc/' + (prepare ? 'stage_prepare_individual_invitation' : 'stage_team_invitation_action'), {
       method: 'POST', headers: userHeaders,
-      body: JSON.stringify(prepare ? { p_email: email, p_name: name, p_job: job ?? null, p_access: access }
+      body: JSON.stringify(prepare ? { p_email: email, p_name: name, p_job: job ?? null, p_access: access, p_admin: admin === true }
         : { p_action: action, p_id: id ?? null, p_email: null, p_name: null, p_role: null })
     });
     if (!change.ok) {
