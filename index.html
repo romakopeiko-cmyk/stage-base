@@ -168,7 +168,7 @@ dialog{max-height:calc(100dvh - env(safe-area-inset-top,0px) - env(safe-area-ins
   dialog.task-editor[open]{position:fixed;inset:var(--editor-top,0px) 0 auto;margin:0;width:100%;max-width:none;height:var(--editor-height,100dvh);max-height:none;border-radius:0;padding:calc(12px + env(safe-area-inset-top,0px)) 16px calc(16px + env(safe-area-inset-bottom,0px));scroll-padding:20px;overflow:auto}
   .task-editor form,.task-editor label{min-width:0;max-width:100%}
 }
-</style><header><div class="brandlock"><svg class="mascot" viewBox="0 0 64 70" aria-hidden="true"><path fill="#ffd600" d="M12 49C-2 39 0 13 16 7c13-5 23 3 24 15 14-7 26 4 23 18-3 17-24 31-39 27-9-2-14-9-12-18Z"/><g fill="#1a1a1a"><circle cx="17" cy="23" r="2.8"/><circle cx="26" cy="22" r="2.8"/><circle cx="43" cy="34" r="2.8"/><circle cx="52" cy="34" r="2.8"/></g></svg><div class="brandwords">STAGE BASE<small>by Stage Show Company</small></div></div><button onclick="go('notifications')" aria-label="Сповіщення"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 18h16l-2-4V9a6 6 0 00-12 0v5zM10 21h4"/></svg></button></header><main id="app"></main><nav><button onclick="go('tasks')"><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m4 6 1.5 1.5L8 5m2 1h10M4 12l1.5 1.5L8 11m2 1h10M4 18l1.5 1.5L8 17m2 1h10"/></svg></b>Завдання</button><button onclick="go('catalog')"><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></b>Каталог</button><button class="scan" onclick="go('lookup')" aria-label="Сканувати QR або знайти за номером"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 9V3h6m6 0h6v6m0 6v6h-6m-6 0H3v-6M8 8h3v3H8zm6 0h2v2h-2zm-6 6h3v3H8zm6 0h3v3h-3z"/></svg></button><button onclick="go('shows')"><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="9" width="18" height="12" rx="2"/><path d="M3 9l17-5-1-3L2 6zM7 5l3 3m4-5 3 3"/></svg></b>Шоу</button><button onclick="go('profile')"><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="7" r="4"/><path d="M4 21v-2a8 8 0 0116 0v2z"/></svg></b>Профіль</button></nav><dialog id="modal"></dialog><div id="toast"></div><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script><script src="./labels.js?v=2.2.2"></script><script src="./reservations.js?v=2.2.2"></script><script src="./import-xlsx.js?v=2.2.2"></script><script src="./import-intake.js?v=2.2.2"></script><script src="./tasks.js?v=1.0-integration"></script><script src="./stock.js"></script><script src="./team-tasks.js"></script><script src="./task-details.js"></script><script src="./team-onboarding.js"></script><script src="./release.js?v=2.2.2"></script><script src="./integration-config.js"></script><script>
+</style><header><div class="brandlock"><svg class="mascot" viewBox="0 0 64 70" aria-hidden="true"><path fill="#ffd600" d="M12 49C-2 39 0 13 16 7c13-5 23 3 24 15 14-7 26 4 23 18-3 17-24 31-39 27-9-2-14-9-12-18Z"/><g fill="#1a1a1a"><circle cx="17" cy="23" r="2.8"/><circle cx="26" cy="22" r="2.8"/><circle cx="43" cy="34" r="2.8"/><circle cx="52" cy="34" r="2.8"/></g></svg><div class="brandwords">STAGE BASE<small>by Stage Show Company</small></div></div><button onclick="go('notifications')" aria-label="Сповіщення"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 18h16l-2-4V9a6 6 0 00-12 0v5zM10 21h4"/></svg></button></header><main id="app"></main><nav><button onclick="go('tasks')"><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m4 6 1.5 1.5L8 5m2 1h10M4 12l1.5 1.5L8 11m2 1h10M4 18l1.5 1.5L8 17m2 1h10"/></svg></b>Завдання</button><button onclick="go('catalog')"><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></b>Каталог</button><button class="scan" onclick="go('lookup')" aria-label="Сканувати QR або знайти за номером"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 9V3h6m6 0h6v6m0 6v6h-6m-6 0H3v-6M8 8h3v3H8zm6 0h2v2h-2zm-6 6h3v3H8zm6 0h3v3h-3z"/></svg></button><button onclick="go('shows')"><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="9" width="18" height="12" rx="2"/><path d="M3 9l17-5-1-3L2 6zM7 5l3 3m4-5 3 3"/></svg></b>Шоу</button><button onclick="go('profile')"><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="7" r="4"/><path d="M4 21v-2a8 8 0 0116 0v2z"/></svg></b>Профіль</button></nav><dialog id="modal"></dialog><div id="toast"></div><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script><script src="./labels.js?v=2.2.2"></script><script src="./reservations.js?v=2.2.2"></script><script src="./import-xlsx.js?v=2.2.2"></script><script src="./import-intake.js?v=2.2.2"></script><script src="./tasks.js?v=1.0-integration"></script><script src="./stock.js"></script><script src="./team-tasks.js"></script><script src="./task-details.js"></script><script src="./team-onboarding.js"></script><script src="./release.js?v=2.2.2"></script><script src="./integration-config.js"></script><script src="./integration-bootstrap.js"></script><script>
 const paths={"home": "<path d=\"M3 10l9-7 9 7v11h-6v-7H9v7H3z\"/>", "catalog": "<rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1\"/><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1\"/><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1\"/><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1\"/>", "lookup": "<path d=\"M3 9V3h6m6 0h6v6m0 6v6h-6m-6 0H3v-6M8 8h3v3H8zm6 0h2v2h-2zm-6 6h3v3H8zm6 0h3v3h-3z\"/>", "shows": "<rect x=\"3\" y=\"9\" width=\"18\" height=\"12\" rx=\"2\"/><path d=\"M3 9l17-5-1-3L2 6zM7 5l3 3m4-5 3 3\"/>", "profile": "<circle cx=\"12\" cy=\"7\" r=\"4\"/><path d=\"M4 21v-2a8 8 0 0116 0v2z\"/>", "box": "<path d=\"M12 2l9 5v10l-9 5-9-5V7zM3 7l9 5 9-5m-9 5v10\"/>", "layers": "<path d=\"M2 7l10-5 10 5-10 5zM2 12l10 5 10-5M2 17l10 5 10-5\"/>", "calendar": "<rect x=\"3\" y=\"5\" width=\"18\" height=\"16\" rx=\"2\"/><path d=\"M7 2v6m10-6v6M3 11h18\"/>", "tool": "<path d=\"M14 6l4 4 4-4a7 7 0 01-9 9l-7 7-4-4 7-7a7 7 0 019-9z\"/>", "bell": "<path d=\"M4 18h16l-2-4V9a6 6 0 00-12 0v5zM10 21h4\"/>", "plus": "<path d=\"M12 4v16M4 12h16\"/>"};function ico(n){return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[n]||paths.box}</svg>`} ;
 let page = 'login';
 const app = document.querySelector('#app');
@@ -179,24 +179,7 @@ function form(title,body,fn){modal.innerHTML=`<h2>${title}</h2><form>${body}<but
 const mascotMarkup="<svg class=\"mascot\" viewBox=\"0 0 64 70\" aria-hidden=\"true\"><path fill=\"#ffd600\" d=\"M12 49C-2 39 0 13 16 7c13-5 23 3 24 15 14-7 26 4 23 18-3 17-24 31-39 27-9-2-14-9-12-18Z\"/><g fill=\"#1a1a1a\"><circle cx=\"17\" cy=\"23\" r=\"2.8\"/><circle cx=\"26\" cy=\"22\" r=\"2.8\"/><circle cx=\"43\" cy=\"34\" r=\"2.8\"/><circle cx=\"52\" cy=\"34\" r=\"2.8\"/></g></svg>";
 Object.assign(paths,{search:'<circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/>',mail:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 6 9 7 9-7"/>',lock:'<rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V6a4 4 0 0 1 8 0v4"/>',eye:'<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>',return:'<path d="M9 4 4 9l5 5M4 9h10a7 7 0 0 1 0 14"/>',transfer:'<path d="M3 7h17l-4-4m4 4-4 4M21 17H4l4-4m-4 4 4 4"/>',clipboard:'<rect x="5" y="5" width="14" height="16" rx="2"/><rect x="9" y="2" width="6" height="5" rx="1"/><path d="M9 12h6m-6 4h6"/>',back:'<path d="m15 5-7 7 7 7"/>',share:'<path d="M12 15V2m-4 4 4-4 4 4M7 10H4v11h16V10h-3"/>',more:'<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>'});
 const authCallback = new URLSearchParams(location.hash.slice(1));
-const integrationConfig = window.STAGE_BASE_INTEGRATION;
-const integrationHost = integrationConfig?.url ? new URL(integrationConfig.url).hostname : '';
-const allowedIntegrationHost = ['127.0.0.1','localhost'].includes(integrationHost);
-if (!allowedIntegrationHost || !integrationConfig?.publishableKey) {
-  document.querySelector('#app').textContent = 'Збірка потребує локального середовища Supabase.';
-  throw new Error('Missing isolated integration configuration');
-}
-const db=window.supabase.createClient(integrationConfig.url,integrationConfig.publishableKey);
-const recoverySession = authCallback.get('type') === 'recovery' && authCallback.has('access_token')
-  ? new Promise(resolve => {
-    const timer = setTimeout(() => { subscription.unsubscribe(); resolve(null); },5000);
-    const {data:{subscription}} = db.auth.onAuthStateChange((event,session) => {
-      if (event !== 'PASSWORD_RECOVERY') return;
-      clearTimeout(timer);
-      subscription.unsubscribe();
-      resolve(session);
-    });
-  }) : null;
+let db, recoverySession;
 let me=null, refs={}, records=[], active=null, busy=false;
 const catalog = { query: '', category: '', show: '', warehouse: '', condition: '', layout: 'gallery' };
 const conditions = ['unverified', 'excellent', 'good', 'fair', 'damaged', 'unusable'];
@@ -474,6 +457,24 @@ function liveChangeInspectionDeadline(){
  });
 }
 
+async function startStageIntegration() {
+  document.body.dataset.page='login';
+  const target=stageIntegrationTarget(window.STAGE_BASE_INTEGRATION,location);
+  if (!target || !await verifyStageIntegration(target)) {
+    app.textContent='Погоджене тестове середовище Stage Base недоступне або його схема ще не готова.';
+    return;
+  }
+  db=window.supabase.createClient(target.url,target.key);
+recoverySession = authCallback.get('type') === 'recovery' && authCallback.has('access_token')
+  ? new Promise(resolve => {
+    const timer = setTimeout(() => { subscription.unsubscribe(); resolve(null); },5000);
+    const {data:{subscription}} = db.auth.onAuthStateChange((event,session) => {
+      if (event !== 'PASSWORD_RECOVERY') return;
+      clearTimeout(timer);
+      subscription.unsubscribe();
+      resolve(session);
+    });
+  }) : null;
 page='login';
 render();
 if (authCallback.get('type') === 'recovery' || authCallback.has('error_code')) {
@@ -492,4 +493,9 @@ if (authCallback.get('type') === 'recovery' || authCallback.has('error_code')) {
       async data => { try { await take(db.auth.updateUser({password:data.get('password')})); return true; } catch(error) { fail(error); return false; } });
   }).catch(e=>{me=null;render();fail(e)});
 }
+}
+startStageIntegration().catch(error => {
+  app.textContent='Не вдалося відкрити тестову збірку Stage Base.';
+  console.error(error);
+});
 </script></html>
