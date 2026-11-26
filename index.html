@@ -57,7 +57,7 @@ html,body{overflow-x:hidden;overscroll-behavior-x:none}
   body[data-page=login] main{padding:0}
   body[data-page=detail] main{padding-bottom:28px}
 }
-</style><header><div class="brandlock"><svg class="mascot" viewBox="0 0 64 70" aria-hidden="true"><path fill="#ffd600" d="M12 49C-2 39 0 13 16 7c13-5 23 3 24 15 14-7 26 4 23 18-3 17-24 31-39 27-9-2-14-9-12-18Z"/><g fill="#1a1a1a"><circle cx="17" cy="23" r="2.8"/><circle cx="26" cy="22" r="2.8"/><circle cx="43" cy="34" r="2.8"/><circle cx="52" cy="34" r="2.8"/></g></svg><div class="brandwords">STAGE BASE<small>by Stage Show Company</small></div></div><button onclick="go('profile')" aria-label="Профіль"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 18h16l-2-4V9a6 6 0 00-12 0v5zM10 21h4"/></svg></button></header><main id="app"></main><nav><button onclick="go('home')"><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 10l9-7 9 7v11h-6v-7H9v7H3z"/></svg></b>Головна</button><button onclick="go('catalog')"><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></b>Каталог</button><button class="scan" onclick="go('lookup')" aria-label="Сканувати QR або знайти за номером"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 9V3h6m6 0h6v6m0 6v6h-6m-6 0H3v-6M8 8h3v3H8zm6 0h2v2h-2zm-6 6h3v3H8zm6 0h3v3h-3z"/></svg></button><button onclick="go('shows')"><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="9" width="18" height="12" rx="2"/><path d="M3 9l17-5-1-3L2 6zM7 5l3 3m4-5 3 3"/></svg></b>Шоу</button><button onclick="go('profile')"><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="7" r="4"/><path d="M4 21v-2a8 8 0 0116 0v2z"/></svg></b>Профіль</button></nav><dialog id="modal"></dialog><div id="toast"></div><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script><script src="./labels.js"></script><script>
+</style><header><div class="brandlock"><svg class="mascot" viewBox="0 0 64 70" aria-hidden="true"><path fill="#ffd600" d="M12 49C-2 39 0 13 16 7c13-5 23 3 24 15 14-7 26 4 23 18-3 17-24 31-39 27-9-2-14-9-12-18Z"/><g fill="#1a1a1a"><circle cx="17" cy="23" r="2.8"/><circle cx="26" cy="22" r="2.8"/><circle cx="43" cy="34" r="2.8"/><circle cx="52" cy="34" r="2.8"/></g></svg><div class="brandwords">STAGE BASE<small>by Stage Show Company</small></div></div><button onclick="go('notifications')" aria-label="Сповіщення"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 18h16l-2-4V9a6 6 0 00-12 0v5zM10 21h4"/></svg></button></header><main id="app"></main><nav><button onclick="go('home')"><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 10l9-7 9 7v11h-6v-7H9v7H3z"/></svg></b>Головна</button><button onclick="go('catalog')"><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></b>Каталог</button><button class="scan" onclick="go('lookup')" aria-label="Сканувати QR або знайти за номером"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 9V3h6m6 0h6v6m0 6v6h-6m-6 0H3v-6M8 8h3v3H8zm6 0h2v2h-2zm-6 6h3v3H8zm6 0h3v3h-3z"/></svg></button><button onclick="go('shows')"><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="9" width="18" height="12" rx="2"/><path d="M3 9l17-5-1-3L2 6zM7 5l3 3m4-5 3 3"/></svg></b>Шоу</button><button onclick="go('profile')"><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="7" r="4"/><path d="M4 21v-2a8 8 0 0116 0v2z"/></svg></b>Профіль</button></nav><dialog id="modal"></dialog><div id="toast"></div><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script><script src="./labels.js"></script><script>
 const paths={"home": "<path d=\"M3 10l9-7 9 7v11h-6v-7H9v7H3z\"/>", "catalog": "<rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1\"/><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1\"/><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1\"/><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1\"/>", "lookup": "<path d=\"M3 9V3h6m6 0h6v6m0 6v6h-6m-6 0H3v-6M8 8h3v3H8zm6 0h2v2h-2zm-6 6h3v3H8zm6 0h3v3h-3z\"/>", "shows": "<rect x=\"3\" y=\"9\" width=\"18\" height=\"12\" rx=\"2\"/><path d=\"M3 9l17-5-1-3L2 6zM7 5l3 3m4-5 3 3\"/>", "profile": "<circle cx=\"12\" cy=\"7\" r=\"4\"/><path d=\"M4 21v-2a8 8 0 0116 0v2z\"/>", "box": "<path d=\"M12 2l9 5v10l-9 5-9-5V7zM3 7l9 5 9-5m-9 5v10\"/>", "layers": "<path d=\"M2 7l10-5 10 5-10 5zM2 12l10 5 10-5M2 17l10 5 10-5\"/>", "calendar": "<rect x=\"3\" y=\"5\" width=\"18\" height=\"16\" rx=\"2\"/><path d=\"M7 2v6m10-6v6M3 11h18\"/>", "tool": "<path d=\"M14 6l4 4 4-4a7 7 0 01-9 9l-7 7-4-4 7-7a7 7 0 019-9z\"/>", "bell": "<path d=\"M4 18h16l-2-4V9a6 6 0 00-12 0v5zM10 21h4\"/>", "plus": "<path d=\"M12 4v16M4 12h16\"/>"};function ico(n){return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[n]||paths.box}</svg>`} ;
 let page = 'login';
 const app = document.querySelector('#app');
@@ -151,6 +151,7 @@ if(page==='home'){app.innerHTML='<div class="greeting">Вітаємо,<h1>'+esc(
 if(page==='catalog'){renderCatalog();return}
 if(page==='detail'&&active){const a=active;app.innerHTML='<button class="back" onclick="go(\'catalog\')">← Каталог</button><h1>'+esc(a.name)+'</h1><small>'+esc(a.inventory_number)+'</small><div class="card">'+[['Категорія',nameOf('categories',a.category_id)],['Шоу',nameOf('shows',a.show_id)],['Місце',locationOf(a)],['Стан',cond(a.condition)],['Кількість',a.quantity+' '+a.unit],['Матеріал',a.material],['Колір',a.color],['Габарити, см',[a.width_cm,a.depth_cm,a.height_cm].join(' × ')],['QR-код',a.qr_code],['Опис',a.description],['Коментар',a.notes],['Дедлайн перевірки',a.inspection_due_at?new Date(a.inspection_due_at).toLocaleDateString('uk-UA'):'—']].map(([k,v])=>'<div class="line"><small>'+k+'</small><br><b>'+esc(v||'—')+'</b></div>').join('')+'</div>'+(editOK()?'<button class="primary full" onclick="liveForm(active)">Редагувати</button>':'')+'<div id="livefiles"></div><div id="liveextra"></div>';if(a.qr_code){const labelButton=document.createElement('button');labelButton.textContent='Друк QR-етикетки';labelButton.className='full';labelButton.onclick=()=>printAssetLabel(a).catch(fail);app.querySelector('h1').after(labelButton)};liveFiles(a.id);liveExtra(a.id);return}
 if(page==='shows'){app.innerHTML='<h1>Шоу та склади</h1>'+['shows','warehouses'].map(t=>'<h2>'+(t==='shows'?'Шоу':'Склади')+'</h2>'+refs[t].map(x=>'<div class="card line"><b>'+esc(x.name)+'</b><p>'+records.filter(a=>a[t==='shows'?'show_id':'warehouse_id']===x.id).length+' позицій</p></div>').join('')).join('');return}
+if(page==='notifications'){renderInbox();return}
 if(page==='profile'){app.innerHTML='<h1>Профіль</h1><div class="card"><b>'+esc(me.full_name)+'</b><p>'+esc(me.role.name)+'</p><small>'+esc(me.email)+'</small></div><button class="full" onclick="logoutLive()">Вийти</button>';return}
 if(page==='lookup'){
  renderLookup(app, code => {
@@ -167,6 +168,67 @@ if(page==='lookup'){
  return;
 }
 app.innerHTML='<h1>Операції</h1><div class="notice">Бронювання, видача та приймання ще не підключені. Зміни в обліку через цей екран заблоковані.</div><button class="full" onclick="go(\'catalog\')">Каталог</button>'};
+
+async function renderInbox() {
+ app.innerHTML = '<h1>Сповіщення</h1><div id="inbox" aria-live="polite">Завантаження…</div>';
+ const inbox = document.querySelector('#inbox');
+ const fields = 'id,title,message,created_at,is_read';
+ let before;
+
+ async function loadMore() {
+  const more = inbox.querySelector('#inbox-more');
+  if (more) more.disabled = true;
+  try {
+   let query = db.from('notifications').select(fields)
+    .order('created_at', { ascending: false }).order('id', { ascending: false }).limit(30);
+   if (before) query = query.or(`created_at.lt.${before.created_at},and(created_at.eq.${before.created_at},id.lt.${before.id})`);
+   const rows = await take(query);
+   if (!inbox.isConnected) return;
+   if (more) more.remove();
+   else inbox.replaceChildren();
+   if (!rows.length && !before) inbox.textContent = 'Сповіщень поки немає.';
+
+   for (const row of rows) {
+    const card = document.createElement('article');
+    card.className = 'card line';
+    card.innerHTML = `<h2>${esc(row.title)}</h2><p>${esc(row.message)}</p>
+      <small>${esc(new Date(row.created_at).toLocaleString('uk-UA'))}</small>`;
+    if (!row.is_read) {
+     const read = document.createElement('button');
+     read.className = 'full';
+     read.textContent = 'Позначити прочитаним';
+     read.onclick = async () => {
+      read.disabled = true;
+      try {
+       await take(db.from('notifications').update({ is_read: true }).eq('id', row.id));
+       read.remove();
+      } catch (error) {
+       read.disabled = false;
+       fail(error);
+      }
+     };
+     card.append(read);
+    }
+    inbox.append(card);
+   }
+   if (rows.length === 30) {
+    before = rows.at(-1);
+    const next = document.createElement('button');
+    next.id = 'inbox-more';
+    next.className = 'full';
+    next.textContent = 'Показати ще';
+    next.onclick = loadMore;
+    inbox.append(next);
+   }
+  } catch (error) {
+   if (more) more.disabled = false;
+   if (inbox.isConnected && !before) inbox.textContent = 'Не вдалося завантажити сповіщення.';
+   fail(error);
+  }
+ }
+
+ await loadMore();
+}
 
 async function liveExtra(id){try{const a=records.find(x=>x.id===id);const [parts,checks,history]=await Promise.all([take(db.from('asset_components').select('id,name,quantity,condition').eq('asset_id',id)),take(db.from('inspections').select('id,status,deadline_at,inspection_type').eq('asset_id',id)),take(db.from('audit_log').select('id,actor_name,description,created_at').eq('asset_id',id).order('created_at',{ascending:false}).limit(100))]);if(page!=='detail'||active?.id!==id)return;const el=document.querySelector('#liveextra');el.innerHTML=(a.tracking_type==='set'?'<h2>Складові комплекту</h2>'+parts.map(p=>'<div class="line">'+esc(p.name)+' · '+esc(p.quantity)+' шт. · '+esc(cond(p.condition))+'</div>').join('')+(editOK()&&a.condition==='unverified'?'<button class="full" onclick="livePart()">＋ Додати складову</button>':''):'')+'<h2>Перевірки</h2>'+checks.map(i=>'<div class="line">'+esc(i.status==='completed'?'Завершено':'Очікує перевірки')+' · '+esc(new Date(i.deadline_at).toLocaleDateString('uk-UA'))+'</div>').join('')+(createOK()&&checks.some(i=>i.status!=='completed')&&a.tracking_type!=='set'?'<button class="primary full" onclick="liveInspect()">Завершити перевірку</button>':'')+'<h2>Історія</h2>'+history.map(h=>'<div class="line">'+esc(h.description)+'<br><small>'+esc(h.actor_name)+' · '+esc(new Date(h.created_at).toLocaleString('uk-UA'))+'</small></div>').join('')}catch(e){fail(e)}}
 function livePart(){const id=active.id;form('Складова комплекту',field('name','Назва')+'<label>Кількість<input type="number" name="quantity" min="1" step="1" value="1" required></label>',async d=>{try{await take(db.from('asset_components').insert({asset_id:id,name:d.get('name'),quantity:Number(d.get('quantity'))}));return true}catch(e){fail(e);return false}})}
