@@ -8,6 +8,8 @@ const taskPriorities = { critical: 'Критичний', high: 'Високий',
 const taskDate = value => value ? new Date(value).toLocaleString('uk-UA') : '';
 const taskNumber = id => 'STG-' + String(id).padStart(4, '0');
 let taskMode = 'active';
+let calendarMode = 'week';
+let calendarDate = new Date();
 
 async function readTasks() {
   const items = [];
@@ -74,6 +76,7 @@ async function renderTasks() {
   try {
     const tasks = await readTasks();
     if (!results.isConnected) return;
+    let bookings = [];
     const renderResults = () => {
       modesButtons.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.mode === taskMode)));
       results.classList.toggle('task-board', taskMode === 'board');
@@ -105,7 +108,7 @@ async function renderTasks() {
         return;
       }
       if (taskMode === 'calendar') {
-        renderTaskWeek(results, filtered, true);
+        renderTaskCalendar(results, filtered, { full: true, bookings });
         return;
       }
       filtered.forEach(task => results.append(taskCard(task)));
@@ -116,6 +119,12 @@ async function renderTasks() {
     });
     query.oninput = priority.onchange = renderResults;
     renderResults();
+    take(db.rpc('stage_list_reservations')).then(data => {
+      bookings = data.reservations.filter(item => ['approved', 'issued'].includes(item.status));
+      if (results.isConnected && taskMode === 'calendar') renderResults();
+    }).catch(() => {
+      if (results.isConnected && taskMode === 'calendar') toast('Не вдалося завантажити бронювання.');
+    });
   } catch (error) {
     if (results.isConnected) results.textContent = 'Не вдалося завантажити завдання.';
     fail(error);
@@ -153,49 +162,113 @@ function taskForm(task, date) {
   });
 }
 
-function renderTaskWeek(container, tasks, allowCreate = false) {
-  let selected = new Date();
-  let week = new Date(selected);
-  week.setDate(week.getDate() - (week.getDay() + 6) % 7);
+function dateShift(date, days) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate() + days, 12);
+}
+
+function renderTaskCalendar(container, tasks, { full = false, bookings = [] } = {}) {
+  let selected = full ? calendarDate : new Date();
+  let mode = full ? calendarMode : 'week';
+  const modeLabels = { day: 'День', week: 'Тиждень', month: 'Місяць' };
+  const views = document.createElement('div');
+  views.className = 'calendar-modes';
+  views.setAttribute('role', 'group');
+  views.setAttribute('aria-label', 'Режим календаря');
+  const navigation = document.createElement('div');
+  navigation.className = 'calendar-navigation';
   const controls = document.createElement('div');
   controls.className = 'task-week';
   const agenda = document.createElement('div');
+  const title = document.createElement('strong');
+  const button = (label, onclick) => {
+    const element = document.createElement('button');
+    element.type = 'button';
+    element.textContent = label;
+    element.onclick = onclick;
+    return element;
+  };
+
+  function navigate(delta) {
+    if (mode === 'month') {
+      const first = new Date(selected.getFullYear(), selected.getMonth() + delta, 1, 12);
+      const last = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
+      selected = dateShift(first, Math.min(last, selected.getDate()) - 1);
+    } else {
+      selected = dateShift(selected, delta * (mode === 'week' ? 7 : 1));
+    }
+    draw();
+  }
+
+  if (full) {
+    for (const [value, label] of Object.entries(modeLabels)) {
+      const view = button(label, () => { mode = value; draw(); });
+      view.dataset.calendarMode = value;
+      views.append(view);
+    }
+    const previous = button('‹', () => navigate(-1));
+    previous.setAttribute('aria-label', 'Попередній період');
+    const next = button('›', () => navigate(1));
+    next.setAttribute('aria-label', 'Наступний період');
+    navigation.append(previous, title, next);
+    container.append(views, navigation);
+  }
   container.append(controls, agenda);
 
-  const draw = () => {
+  const dateLabel = day => day.toLocaleDateString('uk-UA', { dateStyle: 'full' });
+  const sameDay = (first, second) => first.toDateString() === second.toDateString();
+  const base = date => new Date(date.getFullYear(), date.getMonth(), 1, 12);
+  const monday = date => dateShift(date, -(date.getDay() + 6) % 7);
+  function entries(day) {
+    const start = new Date(day.getFullYear(), day.getMonth(), day.getDate());
+    const end = new Date(day.getFullYear(), day.getMonth(), day.getDate() + 1);
+    return {
+      due: tasks.filter(task => [task.starts_at, task.due_at].some(value => value && sameDay(day, new Date(value)))),
+      reserved: bookings.filter(item => new Date(item.start_date) < end && new Date(item.end_date) > start)
+    };
+  }
+
+  function draw() {
+    if (full) {
+      calendarDate = selected;
+      calendarMode = mode;
+      for (const view of views.children) view.setAttribute('aria-pressed', String(view.dataset.calendarMode === mode));
+    }
+    const first = mode === 'month' ? monday(base(selected)) : monday(selected);
+    const count = mode === 'day' ? 0 : mode === 'week' ? 7 : 42;
+    title.textContent = mode === 'day' ? dateLabel(selected)
+      : mode === 'week' ? first.toLocaleDateString('uk-UA') + ' – ' + dateShift(first, 6).toLocaleDateString('uk-UA')
+      : selected.toLocaleDateString('uk-UA', { month: 'long', year: 'numeric' });
     controls.replaceChildren();
-    for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
-      const day = new Date(week);
-      day.setDate(day.getDate() + dayIndex);
-      const button = document.createElement('button');
-      button.textContent = day.toLocaleDateString('uk-UA', { weekday: 'short', day: 'numeric' });
-      button.setAttribute('aria-pressed', String(day.toDateString() === selected.toDateString()));
-      button.onclick = () => { selected = day; draw(); };
-      controls.append(button);
+    for (let index = 0; index < count; index++) {
+      const day = dateShift(first, index);
+      const { due, reserved } = entries(day);
+      const cell = button(mode === 'month' ? String(day.getDate())
+        : day.toLocaleDateString('uk-UA', { weekday: 'short', day: 'numeric' }), () => { selected = day; draw(); });
+      cell.setAttribute('aria-label', dateLabel(day) + ' · Подій: ' + (due.length + reserved.length));
+      cell.setAttribute('aria-pressed', String(sameDay(day, selected)));
+      cell.classList.toggle('calendar-outside', mode === 'month' && day.getMonth() !== selected.getMonth());
+      cell.classList.toggle('calendar-has-events', due.length + reserved.length > 0);
+      controls.append(cell);
     }
     agenda.replaceChildren();
-    const dayTasks = tasks.filter(task => [task.starts_at, task.due_at].some(value =>
-      value && new Date(value).toDateString() === selected.toDateString()));
-    dayTasks.forEach(task => agenda.append(taskCard(task)));
-    if (!dayTasks.length) agenda.append(document.createTextNode('На цей день немає завдань.'));
-    if (allowCreate) {
-      const add = document.createElement('button');
-      add.className = 'full';
-      add.textContent = 'Створити завдання на цю дату';
-      add.onclick = () => taskForm(null, selected.toISOString());
-      agenda.append(add);
+    const heading = document.createElement('h3');
+    heading.textContent = dateLabel(selected);
+    agenda.append(heading);
+    const { due, reserved } = entries(selected);
+    due.forEach(task => agenda.append(taskCard(task)));
+    for (const item of reserved) {
+      const card = document.createElement('button');
+      card.className = 'full';
+      card.textContent = 'Бронювання · ' + item.show_name;
+      card.onclick = () => go('reservations');
+      agenda.append(card);
     }
-  };
-  if (allowCreate) {
-    for (const [label, delta] of [['Попередній тиждень', -7], ['Наступний тиждень', 7]]) {
-      const button = document.createElement('button');
-      button.textContent = label;
-      button.onclick = () => {
-        week.setDate(week.getDate() + delta);
-        selected = new Date(week);
-        draw();
-      };
-      container.insertBefore(button, controls);
+    if (!due.length && !reserved.length) agenda.append(document.createTextNode('На цей день немає подій.'));
+    if (full) {
+      const add = button('Створити завдання на цю дату', () => taskForm(null,
+        new Date(selected.getFullYear(), selected.getMonth(), selected.getDate(), 9).toISOString()));
+      add.className = 'full';
+      agenda.append(add);
     }
   }
   draw();
@@ -205,7 +278,7 @@ async function loadTaskHome(section) {
   try {
     const tasks = (await readTasks()).filter(task => task.status !== 'done');
     if (!section.isConnected) return;
-    renderTaskWeek(section, tasks);
+    renderTaskCalendar(section, tasks);
     const overdue = tasks.filter(taskOverdue);
     if (overdue.length) {
       const heading = document.createElement('h2');
