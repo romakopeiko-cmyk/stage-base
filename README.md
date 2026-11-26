@@ -1,6 +1,10 @@
-# stage-base
-Stage Base — Asset Management System
+# Stage Base
 
-## Development status
+Внутрішня система обліку майна Stage Show Company. Клієнт публікується на GitHub Pages, авторизація і дані працюють через Supabase.
 
-Current GitHub Pages deployment is a demonstration prototype, not a production inventory system. Do not store confidential company inventory, credentials, or personal data in this public repository.
+- [Технічне завдання](docs/requirements.md)
+- [Аудит і план розвитку](docs/development-plan.md)
+
+Для локального запуску виконайте `python -m http.server 8000` у корені репозиторію та відкрийте `http://localhost:8000`. Під час локального запуску клієнт використовує робочий Supabase, тому для перевірки змін даних потрібне окреме середовище.
+
+Репозиторій публічний. Робочі дані, конфіденційні файли й секретні ключі зберігаються поза ним.
