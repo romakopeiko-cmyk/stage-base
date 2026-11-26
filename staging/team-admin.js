@@ -29,6 +29,11 @@ async function renderTeamAdmin(rights) {
       row.className = 'line';
       row.innerHTML = '<b>' + esc(member.full_name) + '</b><p>' + esc(member.job_title || roleNames.get(member.role_id)) + '</p><small>' +
         (member.is_active ? 'Активний профіль' : 'Деактивовано') + (member.is_admin ? ' · Адміністратор' : '') + '</small>';
+      if (members.some(other => other.id !== member.id && other.full_name.trim().toLocaleLowerCase('uk') === member.full_name.trim().toLocaleLowerCase('uk'))) {
+        const identifier = document.createElement('p');
+        identifier.textContent = 'Профіль ' + member.id.slice(-8);
+        row.append(identifier);
+      }
       const edit = document.createElement('button');
       edit.type = 'button';
       edit.className = 'full';
@@ -38,7 +43,7 @@ async function renderTeamAdmin(rights) {
       if (rights.delegate && member.id !== me.id && roles.find(role => role.id === member.role_id)?.code !== 'executive_producer') {
         const access = document.createElement('button');
         access.className = 'full';
-        access.textContent = 'Обмеження доступу';
+        access.textContent = 'Права доступу';
         access.onclick = () => editStageLimits(member, rights).catch(fail);
         row.append(access);
       }
@@ -116,7 +121,7 @@ function renderTeamActions(content, roles, members, invitations, rights) {
       .map(role => '<option value="' + esc(role.id) + '">' + esc(role.name) + '</option>').join('');
     form('Запросити працівника', '<label>Ім’я<input name="name" maxlength="120" required></label>' +
       '<label>Email<input name="email" type="email" required></label><label>Системна роль<select name="role">' + options + '</select></label>',
-      data => request({ action: 'invite', ...Object.fromEntries(data) }));
+      data => request({ action: 'invite', ...Object.fromEntries(data) }), 'Надіслати запрошення');
   };
   actions.querySelector('#transfer').onclick = () => {
     const options = people => '<option value="">Оберіть працівника</option>' + people.map(person =>
@@ -135,7 +140,8 @@ function renderTeamActions(content, roles, members, invitations, rights) {
     const row = document.createElement('div');
     row.className = 'line';
     const statuses = { pending: 'Очікує', revoked: 'Відкликано', accepted: 'Прийнято' };
-    row.textContent = invitation.email + ' · ' + (statuses[invitation.status] || invitation.status);
+    row.textContent = invitation.email + ' · ' + (invitation.status === 'pending' && Date.parse(invitation.expires_at) <= Date.now()
+      ? 'Прострочено' : (statuses[invitation.status] || invitation.status));
     if (invitation.status === 'pending') {
       for (const [action, label] of [['resend','Надіслати повторно'],['revoke','Відкликати']]) {
         const button = document.createElement('button');
