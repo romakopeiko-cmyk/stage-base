@@ -349,8 +349,7 @@ alter table public.stage_tasks
   add column inspection_id uuid unique references public.inspections(id),
   add column inspection_asset_id uuid references public.assets(id);
 
-drop policy stage_tasks_owner_update on public.stage_tasks;
-create policy stage_tasks_owner_update on public.stage_tasks for update to authenticated
+alter policy stage_tasks_owner_update on public.stage_tasks
   using (inspection_id is null and owner_id=(select auth.uid()) and exists (
     select 1 from public.profiles where id=(select auth.uid()) and is_active
   ))
