@@ -24,16 +24,17 @@ Deno.serve(async request => {
     const userHeaders = { Authorization: token, apikey: anon, 'Content-Type': 'application/json' };
     const user = await fetch(url + '/auth/v1/user', { headers: userHeaders });
     if (!user.ok) return respond('Сесія недійсна', 401);
-    const { action, id, email, name, job, access, admin } = await request.json();
+    const { action, id, email, name, job, phone, access, admin } = await request.json();
     if (!['invite', 'resend', 'revoke'].includes(action)) return respond('Невідома дія', 400);
     const prepare = action === 'invite';
-    const change = await fetch(url + '/rest/v1/rpc/' + (prepare ? 'stage_prepare_individual_invitation' : 'stage_team_invitation_action'), {
+    const change = await fetch(url + '/rest/v1/rpc/' + (prepare ? 'stage_prepare_contact_invitation' : 'stage_team_invitation_action'), {
       method: 'POST', headers: userHeaders,
-      body: JSON.stringify(prepare ? { p_email: email, p_name: name, p_job: job ?? null, p_access: access, p_admin: admin === true }
+      body: JSON.stringify(prepare ? { p_email: email, p_name: name, p_job: job ?? null, p_phone: phone ?? null, p_access: access, p_admin: admin === true }
         : { p_action: action, p_id: id ?? null, p_email: null, p_name: null, p_role: null })
     });
     if (!change.ok) {
       const error = await change.json().catch(() => ({}));
+      if (error.code === '22023' && error.message === 'Перевірте контактний номер телефону') return respond(error.message, 400);
       const messages: Record<string, string> = {
         '42501': 'У вашого профілю немає права керувати запрошеннями.',
         '23505': 'Для цієї адреси вже є працівник або активне запрошення.',

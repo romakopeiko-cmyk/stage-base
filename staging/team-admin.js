@@ -135,11 +135,14 @@ function renderTeamActions(content, members, invitations, rights) {
   actions.querySelector('#invite').onclick = async () => {
     try {
       const options = await take(db.rpc('stage_invite_configuration'));
-      form('Запросити працівника', '<label>Ім’я та прізвище<input name="name" maxlength="120" required></label>' +
-        '<label>Електронна пошта<input name="email" type="email" required></label>' +
-        '<label>Посада<input name="job" maxlength="120"></label>' +
-        '<label><input type="checkbox" name="system_admin"> Права системного адміністратора</label>' + accessFields(options) + '<p data-invitation-error role="alert"></p>',
-        data => request({ action: 'invite', name: data.get('name'), email: data.get('email'),
+      form('Запросити працівника', `<section class="invite-details">
+        <h3>Особисті дані</h3><div class="invite-grid">
+          <label>Ім’я та прізвище<input name="name" autocomplete="name" maxlength="120" required></label>
+          <label>Електронна пошта<input name="email" type="email" autocomplete="email" required></label>
+          <label>Контактний номер <small>необов’язково</small><input name="phone" type="tel" autocomplete="tel" maxlength="40"></label>
+          <label>Посада <small>необов’язково</small><input name="job" autocomplete="organization-title" maxlength="120"></label>
+        </div></section>` + accessFields(options, {}, true) + '<p data-invitation-error role="alert"></p>',
+        data => request({ action: 'invite', name: data.get('name'), email: data.get('email'), phone: data.get('phone'),
           job: data.get('job'), admin: data.has('system_admin'), access: accessFrom(data) }), 'Надіслати запрошення');
       bindAccessFields();
     } catch (error) { fail(error); }
@@ -186,22 +189,29 @@ const stageAccessGroups = {
 };
 const stageAccessKeys = Object.values(stageAccessGroups).flatMap(Object.keys);
 
-function accessFields({ shows, warehouses }, values = {}) {
+function accessFields({ shows, warehouses }, values = {}, invite = false) {
   const groups = Object.entries(stageAccessGroups).map(([title, fields]) => `
-    <details class="permission-group"><summary>${esc(title)} <output></output></summary>
-      <label><input type="checkbox" data-select-all> Вибрати всі</label>
+    <div class="invite-permission"><h4>${esc(title)}</h4>
       ${Object.entries(fields).map(([key, label]) =>
-        `<label><input type="checkbox" name="${key}" data-permission ${values[key] ? 'checked' : ''}> ${esc(label)}</label>`).join('')}
-    </details>`).join('');
-  const scope = (name, label, rows) => `<fieldset><legend>${label}</legend>
-    <label><select name="${name}_mode">
-      <option value="specific">Лише вибрані</option><option value="all" ${values[name] === null ? 'selected' : ''}>Усі</option>
-    </select></label>${rows.map(row =>
-      `<label><input type="checkbox" name="${name}" value="${esc(row.id)}" ${values[name]?.includes(row.id) ? 'checked' : ''}> ${esc(row.name)}</label>`).join('')}
-    </fieldset>`;
-  return '<h3>Індивідуальні права</h3>' + groups +
-    '<p><small>Перегляд завдань потрібен для їх створення та редагування. У формі доступні дозволи, які підтримує сервер Staging.</small></p>' +
-    scope('show_ids', 'Шоу', shows) + scope('warehouse_ids', 'Склади', warehouses);
+        `<label class="invite-check"><input type="checkbox" name="${key}" ${values[key] ? 'checked' : ''}> <span>${esc(label)}</span></label>`).join('')}
+    </div>`).join('');
+  const scope = (name, all, selected, rows) => `
+    <div class="invite-scope" data-scope="${name}">
+      <div class="invite-choices">
+        <label class="invite-check"><input type="radio" name="${name}_mode" value="all" ${values[name] === null ? 'checked' : ''}> ${all}</label>
+        <label class="invite-check"><input type="radio" name="${name}_mode" value="specific" ${values[name] === null ? '' : 'checked'}> ${selected}</label>
+      </div>
+      <div class="invite-options" ${values[name] === null ? 'hidden' : ''}>${rows.length ? rows.map(row =>
+        `<label class="invite-check"><input type="checkbox" name="${name}" value="${esc(row.id)}" ${values[name]?.includes(row.id) ? 'checked' : ''}> <span>${esc(row.name)}</span></label>`).join('') : '<small>Список поки порожній.</small>'}</div>
+    </div>`;
+  return `<section class="invite-section"><h3>Доступ до проєктів</h3>
+    ${scope('show_ids', 'Усі проєкти', 'Вибрані проєкти', shows)}</section>
+    <section class="invite-section"><h3>Індивідуальні права</h3><div class="invite-permissions">
+    ${groups}
+    ${invite ? '<div class="invite-permission"><h4>Системне адміністрування</h4><label class="invite-check"><input type="checkbox" name="system_admin"> <span>Керування командою як системний адміністратор</span></label></div>' : ''}
+    </div></section>
+    <details class="invite-section invite-extra"><summary>Додаткові налаштування</summary>
+    <h4>Доступ до складів</h4>${scope('warehouse_ids', 'Усі склади', 'Вибрані склади', warehouses)}</details>`;
 }
 
 function accessFrom(data) {
@@ -213,17 +223,9 @@ function accessFrom(data) {
 }
 
 function bindAccessFields() {
-  for (const group of modal.querySelectorAll('.permission-group')) {
-    const all = group.querySelector('[data-select-all]');
-    const options = [...group.querySelectorAll('[data-permission]')];
-    const refresh = () => {
-      const count = options.filter(option => option.checked).length;
-      group.querySelector('output').textContent = count + ' / ' + options.length;
-      all.checked = count === options.length;
-      all.indeterminate = count > 0 && count < options.length;
-    };
-    all.onchange = () => { options.forEach(option => { option.checked = all.checked; }); refresh(); };
-    group.addEventListener('change', refresh);
+  for (const scope of modal.querySelectorAll('[data-scope]')) {
+    const refresh = () => { scope.querySelector('.invite-options').hidden = scope.querySelector('input:checked[name$="_mode"]').value === 'all'; };
+    scope.addEventListener('change', refresh);
     refresh();
   }
 }
@@ -257,7 +259,10 @@ async function editStageLimits(member, rights, manageable) {
         control.dispatchEvent(new Event('change', { bubbles: true }));
       }
       for (const key of ['show_ids','warehouse_ids']) {
-        modal.querySelector('[name="' + key + '_mode"]').value = limits[key] === null ? 'all' : 'specific';
+        const mode = limits[key] === null ? 'all' : 'specific';
+        const radio = modal.querySelector('[name="' + key + '_mode"][value="' + mode + '"]');
+        radio.checked = true;
+        radio.dispatchEvent(new Event('change', { bubbles: true }));
         for (const control of modal.querySelectorAll('[name="' + key + '"]')) {
           control.checked = limits[key]?.includes(control.value) || false;
         }
