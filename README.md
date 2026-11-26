@@ -3,6 +3,7 @@
 Внутрішня система обліку майна Stage Show Company. Клієнт публікується на GitHub Pages, авторизація і дані працюють через Supabase.
 
 - [Технічне завдання](docs/requirements.md)
+- [Master Development Task 2.0](docs/master-development-task-2.md)
 - [Аудит і план розвитку](docs/development-plan.md)
 
 Для локального запуску виконайте `python -m http.server 8000` у корені репозиторію та відкрийте `http://localhost:8000`. Під час локального запуску клієнт використовує робочий Supabase, тому для перевірки змін даних потрібне окреме середовище.
