@@ -15,7 +15,7 @@ async function readTasks() {
   const items = [];
   for (let start = 0; ; start += 100) {
     const batch = await take(db.from('stage_tasks')
-      .select('id,title,description,priority,status,starts_at,due_at,updated_at')
+      .select('id,title,description,priority,status,starts_at,due_at,updated_at,owner_id,assigned_by,show_id')
       .order('due_at', { nullsFirst: false }).order('id').range(start, start + 99));
     items.push(...batch);
     if (batch.length < 100) return items;
@@ -39,9 +39,15 @@ function taskCard(task, draggable = false) {
       ${task.due_at ? `<span>${esc(taskDate(task.due_at))}</span>` : ''}
       ${taskOverdue(task) ? '<span class="task-overdue">Прострочено</span>' : ''}
     </span>`;
-  open.onclick = () => taskForm(task);
+  open.onclick = () => {
+    if (task.assigned_by) {
+      openAssignedTask(task);
+      return;
+    }
+    taskForm(task);
+  };
   card.append(open);
-  if (draggable) {
+  if (draggable && task.owner_id === me.id) {
     card.draggable = true;
     card.ondragstart = event => event.dataTransfer.setData('text/plain', String(task.id));
   }
@@ -56,6 +62,7 @@ async function saveTask(task, values) {
 
 async function renderTasks() {
   const modes = { active: 'Список', board: 'Дошка', calendar: 'Календар', archive: 'Виконані' };
+  if (canManageTeamTasks()) modes.created = 'Призначені';
   app.innerHTML = `
     <div class="task-heading"><h1>Мої завдання</h1><button class="primary" id="add-task">Нове завдання</button></div>
     <div class="task-views" role="group" aria-label="Вигляд завдань">
@@ -73,6 +80,13 @@ async function renderTasks() {
   const query = app.querySelector('#task-query');
   const priority = app.querySelector('#task-priority');
   app.querySelector('#add-task').onclick = () => taskForm();
+  if (canManageTeamTasks()) {
+    const assign = document.createElement('button');
+    assign.className = 'full';
+    assign.textContent = 'Призначити співробітнику';
+    assign.onclick = teamTaskForm;
+    app.querySelector('.task-views').before(assign);
+  }
   try {
     const tasks = await readTasks();
     if (!results.isConnected) return;
@@ -81,8 +95,9 @@ async function renderTasks() {
       modesButtons.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.mode === taskMode)));
       results.classList.toggle('task-board', taskMode === 'board');
       const term = query.value.trim().toLocaleLowerCase('uk');
-      const filtered = tasks.filter(task => (taskMode === 'archive' ? task.status === 'done' :
-        taskMode === 'board' || task.status !== 'done') &&
+      const filtered = tasks.filter(task => (taskMode === 'created' ? task.assigned_by === me.id : task.owner_id === me.id) &&
+        (taskMode === 'archive' ? task.status === 'done' :
+        ['board', 'created'].includes(taskMode) || task.status !== 'done') &&
         (!priority.value || task.priority === priority.value) &&
         [task.title, task.description, taskNumber(task.id)].join(' ').toLocaleLowerCase('uk').includes(term));
       results.replaceChildren();
@@ -99,7 +114,7 @@ async function renderTasks() {
           section.ondrop = async event => {
             event.preventDefault();
             const task = tasks.find(item => String(item.id) === event.dataTransfer.getData('text/plain'));
-            if (!task || task.status === status) return;
+            if (!task || task.owner_id !== me.id || task.status === status) return;
             try { await saveTask(task, { status }); } catch (error) { fail(error); }
             if (page === 'tasks') await renderTasks();
           };
@@ -276,7 +291,7 @@ function renderTaskCalendar(container, tasks, { full = false, bookings = [] } = 
 
 async function loadTaskHome(section) {
   try {
-    const tasks = (await readTasks()).filter(task => task.status !== 'done');
+    const tasks = (await readTasks()).filter(task => task.owner_id === me.id && task.status !== 'done');
     if (!section.isConnected) return;
     renderTaskCalendar(section, tasks);
     const overdue = tasks.filter(taskOverdue);
