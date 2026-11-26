@@ -58,12 +58,12 @@ async function renderImportIntake() {
 function selectImportPackage() {
   const input = document.createElement('input');
   input.type = 'file';
-  input.accept = '.json,application/json';
+  input.accept = '.xlsx,.json,application/json';
   input.onchange = async () => {
     try {
       const file = input.files[0];
-      if (!file || file.size > 4 * 1024 * 1024) throw Error('Оберіть пакет JSON до 4 МБ');
-      const data = JSON.parse(await file.text());
+      if (!file || file.size > 4 * 1024 * 1024) throw Error('Оберіть Excel або JSON до 4 МБ');
+      const data = /\.xlsx$/i.test(file.name) ? await parseImportWorkbook(file) : JSON.parse(await file.text());
       if (!/^[0-9a-f]{64}$/.test(data.source_sha256) || !Array.isArray(data.items)
           || data.items.length < 1 || data.items.length > 2000) {
         throw Error('Некоректний пакет імпорту');
