@@ -9,7 +9,7 @@ select '00000000-0000-4000-8000-000000001001','Test clerk',id,true from public.r
 insert into public.profiles(id,full_name,role_id,is_active)
 select '00000000-0000-4000-8000-000000001002','Test reader',id,true from public.roles where code='director';
 insert into public.permissions(code,name,module)
-select v,v,'repairs' from unnest(array['repairs.view','repairs.create','repairs.manage','assets.view']) as v;
+select v,v,'repairs' from unnest(array['repairs.view','repairs.create','repairs.manage','repairs.complete','inspections.perform','assets.view']) as v;
 insert into public.role_permissions(role_id,permission_id)
 select r.id,p.id from public.roles r cross join public.permissions p
 where r.code='warehouse_manager' or (r.code='director' and p.code in ('repairs.view','assets.view'));
@@ -37,11 +37,25 @@ begin
   perform public.stage_advance_repair(repair,'scheduled','Майстерня',null);
   perform public.stage_advance_repair(repair,'in_progress',null,null);
   perform public.stage_advance_repair(repair,'awaiting_inspection',null,'Замінено опору');
-  if public.stage_list_repairs()->'repairs'->0->>'status'<>'awaiting_inspection' then
+  begin
+    perform public.stage_complete_repair(repair);
+    raise exception 'Premature repair completion';
+  exception when invalid_parameter_value then null;
+  end;
+  if public.stage_list_repairs()->'repairs'->0->>'status' is distinct from 'awaiting_inspection' then
     raise exception 'Repair was not sent for inspection';
   end if;
 end;
 $$;
+reset role;
+insert into storage.objects(bucket_id,name,created_at)
+values ('asset-photos','00000000-0000-4000-8000-000000001004/fixture',now());
+insert into public.asset_photos(asset_id,storage_path,uploaded_by)
+values ('00000000-0000-4000-8000-000000001004','00000000-0000-4000-8000-000000001004/fixture',
+ '00000000-0000-4000-8000-000000001001');
+set local role authenticated;
+select public.stage_finish_inspection('00000000-0000-4000-8000-000000001004','good',true,'Fixture','[]');
+select public.stage_complete_repair((public.stage_list_repairs()->'repairs'->0->>'id')::uuid);
 set local request.jwt.claim.sub='00000000-0000-4000-8000-000000001002';
 do $$ begin
   if jsonb_array_length(public.stage_list_repairs()->'repairs')<>1 then raise exception 'Missing reader result'; end if;
@@ -53,6 +67,8 @@ do $$ begin
 end $$;
 reset role;
 do $$ begin
-  if (select count(*) from public.audit_log where entity_type='repair') <> 4 then raise exception 'Missing repair audit events'; end if;
+  if not exists(select 1 from public.repairs r join public.repair_photos p on p.repair_id=r.id
+      where r.status='completed' and p.photo_type='after') then raise exception 'Missing verified repair evidence'; end if;
+  if (select count(*) from public.audit_log where entity_type='repair') <> 5 then raise exception 'Missing repair audit events'; end if;
 end $$;
 rollback;

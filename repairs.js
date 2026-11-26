@@ -40,6 +40,12 @@ async function renderRepairs() {
         if (item.status === 'in_progress') card.append(button('Передати на перевірку', () =>
           repairTransition(item, 'awaiting_inspection', 'Передача на перевірку', '<label>Виконані роботи<textarea name="work" required maxlength="4000"></textarea></label>')));
       }
+      if (item.status === 'awaiting_inspection') {
+        card.append(button('Відкрити картку для перевірки', () => liveDetail(item.asset_id)));
+        if (data.can_complete) card.append(button('Завершити після перевірки', () =>
+          form('Завершення ремонту', '<p>Підтвердіть завершення після перевірки стану, комплектності й фотографії.</p>',
+            () => repairAction('stage_complete_repair', {p_repair:item.id}))));
+      }
       target.append(card);
     }
   } catch (error) {
