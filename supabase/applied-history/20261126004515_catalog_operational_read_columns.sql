@@ -1,0 +1,1 @@
+GRANT SELECT (condition,location_type,storage_address,inspection_due_at,last_used_at,last_inspected_at,tags,notes,is_archived,weight_kg,disassembled_dimensions,completeness,created_by,created_at,updated_at) ON public.assets TO authenticated;

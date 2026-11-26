@@ -1,0 +1,2 @@
+ALTER POLICY stage_asset_photos_upload ON storage.objects TO authenticated WITH CHECK (bucket_id = 'asset-photos' AND public.has_permission('assets.photos') AND EXISTS (SELECT 1 FROM public.assets a WHERE a.id::text = (storage.foldername(objects.name))[1]));
+ALTER POLICY stage_asset_documents_upload ON storage.objects TO authenticated WITH CHECK (bucket_id = 'asset-documents' AND public.has_permission('assets.documents') AND EXISTS (SELECT 1 FROM public.assets a WHERE a.id::text = (storage.foldername(objects.name))[1]));
