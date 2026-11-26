@@ -1,5 +1,5 @@
 // Change this version on every release to trigger a service worker update.
-const stageWorkerRelease = '2.2.0';
+const stageWorkerRelease = '2.2.1';
 
 self.addEventListener('message', event => {
   if (event.data?.type === 'STAGE_ACTIVATE_UPDATE') event.waitUntil(self.skipWaiting());

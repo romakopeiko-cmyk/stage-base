@@ -79,7 +79,7 @@ async function renderTasks() {
   const previousBoard = app.querySelector('.task-board');
   if (previousBoard) taskBoardScroll = previousBoard.scrollLeft;
   const modes = { active: 'Список', board: 'Дошка', calendar: 'Календар', archive: 'Виконані' };
-  const quickFilters = { all: 'Мої завдання', today: 'На сьогодні', overdue: 'Прострочені',
+  const quickFilters = { all: 'Усі терміни', today: 'На сьогодні', overdue: 'Прострочені',
     soon: 'Найближчі', noDeadline: 'Без дедлайну' };
   const timeMatch = task => {
     const now = new Date();
@@ -102,11 +102,14 @@ async function renderTasks() {
     <div class="task-views" role="group" aria-label="Вигляд завдань">
       ${Object.entries(modes).map(([value, label]) => `<button type="button" data-mode="${value}">${label}</button>`).join('')}
     </div>
-    <div class="task-quick" role="group" aria-label="Швидкі фільтри">
+    <div class="task-quick" role="group" aria-label="Терміни завдань">
       ${Object.entries(quickFilters).map(([value, label]) => `<button type="button" data-quick="${value}">${label}</button>`).join('')}
     </div>
     <div class="task-filters">
       <label>Пошук<input type="search" id="task-query" placeholder="Назва або номер"></label>
+      <label>Статус<select id="task-filter-status"><option value="">Усі</option>
+        ${Object.entries(taskStatuses).map(([key, label]) => `<option value="${key}">${label}</option>`).join('')}
+      </select></label>
       <label>Пріоритет<select id="task-priority"><option value="">Усі</option>
         ${Object.entries(taskPriorities).map(([key, label]) => `<option value="${key}">${label}</option>`).join('')}
       </select></label>
@@ -116,6 +119,7 @@ async function renderTasks() {
   const modesButtons = [...app.querySelectorAll('[data-mode]')];
   const quickButtons = [...app.querySelectorAll('[data-quick]')];
   const query = app.querySelector('#task-query');
+  const statusFilter = app.querySelector('#task-filter-status');
   const priority = app.querySelector('#task-priority');
   app.querySelector('#add-task').onclick = () => taskForm();
   try {
@@ -130,7 +134,7 @@ async function renderTasks() {
       const term = query.value.trim().toLocaleLowerCase('uk');
       const filtered = tasks.filter(task => (taskMode === 'archive' ? task.status === 'done' :
         taskMode === 'board' || taskMode === 'calendar' || task.status !== 'done') && timeMatch(task) &&
-        (!priority.value || task.priority === priority.value) &&
+        (!statusFilter.value || task.status === statusFilter.value) && (!priority.value || task.priority === priority.value) &&
         [task.title, task.description, taskNumber(task.id), 'STG-' + String(task.id).padStart(4, '0')].join(' ').toLocaleLowerCase('uk').includes(term));
       results.replaceChildren();
 
@@ -174,7 +178,7 @@ async function renderTasks() {
       taskQuickFilter = button.dataset.quick;
       renderResults();
     }; });
-    query.oninput = priority.onchange = renderResults;
+    query.oninput = priority.onchange = statusFilter.onchange = renderResults;
     renderResults();
     take(db.rpc('stage_list_reservations')).then(data => {
       bookings = data.reservations.filter(item => ['approved', 'issued'].includes(item.status));
@@ -200,7 +204,6 @@ function taskForm(task, date) {
   form(task ? taskNumber(task.id) : 'Нове завдання', `
     <label>Назва<input name="title" maxlength="180" required value="${esc(task?.title)}"></label>
     ${task ? `<label>Статус<select name="status">${options(taskStatuses,task.status)}</select></label>` : ''}
-    <details class="task-more" ${task?.description || date ? 'open' : ''}><summary>Опис і планування</summary>
     <label>Опис<textarea name="description" maxlength="8000">${esc(task?.description)}</textarea></label>
     <div class="task-format" role="group" aria-label="Форматування опису">
       <button type="button" data-format="bold">Жирний</button>
@@ -209,8 +212,9 @@ function taskForm(task, date) {
     </div><div class="task-description-preview" hidden></div>
     <label>Пріоритет<select name="priority">${options(taskPriorities, task?.priority || 'medium')}</select></label>
 
-    <label>Початок<input type="datetime-local" name="start" value="${localDateValue(task?.starts_at || date)}"></label>
-    <label>Строк<input type="datetime-local" name="due" value="${localDateValue(task?.due_at)}"></label></details>`,
+    <label>Дедлайн<input type="datetime-local" name="due" value="${localDateValue(task?.due_at)}"></label>
+    <details class="task-more" ${date ? 'open' : ''}><summary>Додаткові параметри</summary>
+    <label>Початок<input type="datetime-local" name="start" value="${localDateValue(task?.starts_at || date)}"></label></details>`,
   async data => {
     const iso = (field, original) => {
       const value = data.get(field);
@@ -372,6 +376,37 @@ function renderTaskCalendar(container, tasks, { full = false, bookings = [] } = 
 
   function drawTimeline(first, days) {
     timeline.classList.toggle('calendar-timeline-week', days === 7);
+    const now = new Date();
+    let currentHour;
+    if (days === 7) {
+      const rail = document.createElement('div');
+      rail.className = 'calendar-hour-rail';
+      rail.setAttribute('aria-hidden', 'true');
+      rail.append(document.createElement('div'));
+      for (let hour = 0; hour < 24; hour++) {
+        const label = document.createElement('div');
+        label.textContent = String(hour).padStart(2, '0') + ':00';
+        rail.append(label);
+      }
+      const spans = document.createElement('div');
+      spans.className = 'calendar-multiday';
+      const week = Array.from({ length: days }, (_, index) => dateShift(first, index));
+      const dayKey = value => localDateValue(value).slice(0, 10);
+      for (const task of tasks) {
+        if (!task.starts_at || !task.due_at) continue;
+        const starts = dayKey(task.starts_at);
+        const ends = dayKey(task.due_at);
+        if (starts >= ends) continue;
+        const covered = week.map(dayKey).map((key, index) => key >= starts && key <= ends ? index : -1)
+          .filter(index => index >= 0);
+        if (!covered.length) continue;
+        const entry = button(task.title, () => taskForm(task));
+        entry.style.gridColumn = (covered[0] + 2) + ' / span ' + covered.length;
+        spans.append(entry);
+      }
+      if (spans.childElementCount) timeline.append(spans);
+      timeline.append(rail);
+    }
     for (let index = 0; index < days; index++) {
       const day = dateShift(first, index);
       const start = new Date(day.getFullYear(), day.getMonth(), day.getDate());
@@ -388,7 +423,16 @@ function renderTaskCalendar(container, tasks, { full = false, bookings = [] } = 
         const label = time.toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' });
         const row = document.createElement('div');
         row.className = 'calendar-hour';
-        const add = button(label, () => taskForm(null, time.toISOString()));
+        const add = button(days === 7 ? (time.getMinutes() || start.getTimezoneOffset() !== end.getTimezoneOffset() ? label : '+') : label,
+          () => taskForm(null, time.toISOString()));
+        if (+now >= instant && +now < instant + 3600000) {
+          currentHour = row;
+          const marker = document.createElement('span');
+          marker.className = 'calendar-now';
+          marker.style.top = ((+now - instant) / 3600000 * 100) + '%';
+          marker.setAttribute('aria-label', 'Поточний час');
+          row.append(marker);
+        }
         add.setAttribute('aria-label', 'Нове завдання · ' + dateLabel(day) + ' · ' + label +
           ' · ' + time.toLocaleTimeString('uk-UA', { timeZoneName: 'shortOffset' }).split(' ').at(-1));
         row.append(add);
@@ -409,6 +453,12 @@ function renderTaskCalendar(container, tasks, { full = false, bookings = [] } = 
       }
       timeline.append(column);
     }
+    timeline.scrollTop = 0;
+    if (currentHour) requestAnimationFrame(() => {
+      if (!currentHour.isConnected) return;
+      timeline.scrollTop = Math.max(0, currentHour.getBoundingClientRect().top -
+        timeline.getBoundingClientRect().top + timeline.scrollTop - 90);
+    });
   }
 
   function draw() {
@@ -470,6 +520,15 @@ function renderTaskCalendar(container, tasks, { full = false, bookings = [] } = 
         new Date(selected.getFullYear(), selected.getMonth(), selected.getDate(), 9).toISOString()));
       add.className = 'full';
       agenda.append(add);
+      const undated = tasks.filter(task => !task.starts_at && !task.due_at && task.status !== 'done');
+      if (undated.length) {
+        const backlog = document.createElement('details');
+        backlog.className = 'task-more';
+        const label = document.createElement('summary');
+        label.textContent = 'Без дати · ' + undated.length;
+        backlog.append(label, ...undated.map(task => taskCard(task, false)));
+        agenda.append(backlog);
+      }
     }
   }
   draw();
