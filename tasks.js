@@ -212,10 +212,15 @@ function taskForm(task, date) {
     <label>Початок<input type="datetime-local" name="start" value="${localDateValue(task?.starts_at || date)}"></label>
     <label>Строк<input type="datetime-local" name="due" value="${localDateValue(task?.due_at)}"></label></details>`,
   async data => {
-    const iso = field => data.get(field) ? new Date(data.get(field)).toISOString() : null;
+    const iso = (field, original) => {
+      const value = data.get(field);
+      if (!value) return null;
+      if (original && value === localDateValue(original)) return original;
+      return new Date(value).toISOString();
+    };
     try {
       const values = { title: data.get('title').trim(), description: data.get('description').trim(),
-        priority: data.get('priority'), starts_at: iso('start'), due_at: iso('due') };
+        priority: data.get('priority'), starts_at: iso('start', task?.starts_at || date), due_at: iso('due', task?.due_at) };
       if (task) values.status = data.get('status');
       await saveTask(task, values);
       return true;
