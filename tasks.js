@@ -15,7 +15,7 @@ async function readTasks() {
   const items = [];
   for (let start = 0; ; start += 100) {
     const batch = await take(db.from('stage_tasks')
-      .select('id,title,description,priority,status,starts_at,due_at,updated_at')
+      .select('id,title,description,priority,status,starts_at,due_at,updated_at,inspection_id,inspection_asset_id')
       .order('due_at', { nullsFirst: false }).order('id').range(start, start + 99));
     items.push(...batch);
     if (batch.length < 100) return items;
@@ -39,9 +39,16 @@ function taskCard(task, draggable = false) {
       ${task.due_at ? `<span>${esc(taskDate(task.due_at))}</span>` : ''}
       ${taskOverdue(task) ? '<span class="task-overdue">Прострочено</span>' : ''}
     </span>`;
-  open.onclick = () => taskForm(task);
+  open.onclick = () => {
+    if (task.inspection_id) {
+      liveDetail(task.inspection_asset_id);
+      if (page === 'tasks' || page === 'home') toast('Картка майна недоступна');
+      return;
+    }
+    taskForm(task);
+  };
   card.append(open);
-  if (draggable) {
+  if (draggable && !task.inspection_id) {
     card.draggable = true;
     card.ondragstart = event => event.dataTransfer.setData('text/plain', String(task.id));
   }
@@ -99,7 +106,7 @@ async function renderTasks() {
           section.ondrop = async event => {
             event.preventDefault();
             const task = tasks.find(item => String(item.id) === event.dataTransfer.getData('text/plain'));
-            if (!task || task.status === status) return;
+            if (!task || task.inspection_id || task.status === status) return;
             try { await saveTask(task, { status }); } catch (error) { fail(error); }
             if (page === 'tasks') await renderTasks();
           };
