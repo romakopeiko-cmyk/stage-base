@@ -141,9 +141,9 @@ function renderTeamActions(content, members, invitations, rights) {
           <label>Електронна пошта<input name="email" type="email" autocomplete="email" required></label>
           <label>Контактний номер <small>необов’язково</small><input name="phone" type="tel" autocomplete="tel" maxlength="40"></label>
           <label>Посада <small>необов’язково</small><input name="job" autocomplete="organization-title" maxlength="120"></label>
-        </div></section>` + accessFields(options, {}, true) + '<p data-invitation-error role="alert"></p>',
+        </div></section>` + accessFields(options, {}, true) + catalogPermissionFields({}) + '<p data-invitation-error role="alert"></p>',
         data => request({ action: 'invite', name: data.get('name'), email: data.get('email'), phone: data.get('phone'),
-          job: data.get('job'), admin: data.has('system_admin'), access: accessFrom(data) }), 'Надіслати запрошення');
+          job: data.get('job'), admin: data.has('system_admin'), access: accessFrom(data), catalogAccess: catalogPermissionValues(data) }), 'Надіслати запрошення');
       bindAccessFields();
     } catch (error) { fail(error); }
   };
@@ -230,6 +230,20 @@ function bindAccessFields() {
   }
 }
 
+const catalogPermissionLabels = {
+  can_create:'Додавати майно', can_edit:'Редагувати картки',
+  can_photo:'Завантажувати фото', can_document:'Завантажувати документи'
+};
+function catalogPermissionFields(values) {
+  return '<section class="invite-section"><h3>Запис у каталог</h3>' +
+    Object.entries(catalogPermissionLabels).map(([key,label]) =>
+      '<label class="invite-check"><input type="checkbox" name="' + key + '" ' +
+      (values[key] ? 'checked' : '') + '> ' + esc(label) + '</label>').join('') + '</section>';
+}
+function catalogPermissionValues(data) {
+  return Object.fromEntries(Object.keys(catalogPermissionLabels).map(key => [key,data.has(key)]));
+}
+
 async function editStageLimits(member, rights, manageable) {
   const current = await take(db.rpc('stage_team_limits', { p_user: member.id }));
   const people = manageable.filter(person => person.id !== member.id);
@@ -237,13 +251,12 @@ async function editStageLimits(member, rights, manageable) {
   form('Права доступу · ' + member.full_name, `
     <label>Копіювати права працівника<select id="copy-permissions"><option value="">Оберіть працівника</option>
       ${people.map(person => `<option value="${esc(person.id)}">${esc(person.full_name)} · ${esc(person.email || 'Пошту не вказано')}</option>`).join('')}
-    </select></label>` + accessFields(current, current.limits || {}) +
-    '<section class="invite-section"><h3>Запис у каталог</h3><label class="invite-check"><input type="checkbox" name="catalog_create" ' +
-    (catalogAccess.can_create ? 'checked' : '') + '> Додавати майно</label><label class="invite-check"><input type="checkbox" name="catalog_edit" ' +
-    (catalogAccess.can_edit ? 'checked' : '') + '> Редагувати картки</label></section>',
+    </select></label>` + accessFields(current, current.limits || {}) + catalogPermissionFields(catalogAccess),
     async data => {
-      await take(db.rpc('stage_save_catalog_member_access', {
-        p_user: member.id,p_limits:accessFrom(data),p_create:data.has('catalog_create'),p_edit:data.has('catalog_edit')
+      const access = catalogPermissionValues(data);
+      await take(db.rpc('stage_save_member_catalog_permissions', {
+        p_user:member.id,p_limits:accessFrom(data),p_create:access.can_create,p_edit:access.can_edit,
+        p_photo:access.can_photo,p_document:access.can_document
       }));
       toast('Права доступу збережено');
       modal.close();
@@ -256,7 +269,10 @@ async function editStageLimits(member, rights, manageable) {
     const source = select.value;
     if (!source) return;
     try {
-      const { limits } = await take(db.rpc('stage_team_limits', { p_user: source }));
+      const [{ limits }, sourceCatalog] = await Promise.all([
+        take(db.rpc('stage_team_limits', { p_user: source })),
+        take(db.rpc('stage_catalog_permissions_for', { p_user: source }))
+      ]);
       if (!select.isConnected || select.value !== source) return;
       if (!limits) { toast('У працівника немає індивідуального набору прав.'); return; }
       for (const key of stageAccessKeys) {
@@ -273,6 +289,7 @@ async function editStageLimits(member, rights, manageable) {
           control.checked = limits[key]?.includes(control.value) || false;
         }
       }
+      for (const key of Object.keys(catalogPermissionLabels)) modal.querySelector('[name="' + key + '"]').checked = sourceCatalog[key] === true;
       toast('Набір скопійовано до форми. Збережіть, щоб застосувати права.');
     } catch (error) { fail(error); }
   };

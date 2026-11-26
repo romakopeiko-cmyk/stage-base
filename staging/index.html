@@ -225,7 +225,7 @@ function form(title, body, submit, submitLabel = 'Зберегти') {
 }
 
 let page='login';
-const stageLabel = 'Staging 2.3.6';
+const stageLabel = 'Staging 2.3.7';
 function applyStagePermissions() {
   const available = {
     tasks: me.access.tasks, catalog: me.access.catalog, lookup: me.access.catalog,
@@ -393,4 +393,4 @@ document.addEventListener('DOMContentLoaded', async () => {
     else login();
   } catch (error) { login(); fail(error); }
 });
-</script><script src="./catalog.js?v=1"></script><script src="./team-admin.js?v=8"></script></html>
+</script><script src="./catalog.js?v=2"></script><script src="./team-admin.js?v=9"></script></html>

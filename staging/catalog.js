@@ -48,7 +48,7 @@ async function stageAssetDetail(item) {
     '</p><div id="catalog-qr"></div><h3>Історія</h3>' + (events.map(event =>
       '<p>' + esc(({ 'catalog.created':'Картку створено','catalog.updated':'Картку оновлено' })[event.event_type] || 'Складська дія') +
       ' · ' + esc(new Date(event.created_at).toLocaleString('uk-UA')) + '</p>').join('') || '<p>Записів поки немає.</p>') +
-    '<button type="button" class="full">Закрити</button>';
+    '<section id="catalog-files" aria-live="polite"></section><button type="button" class="full">Закрити</button>';
   modal.querySelector('button').onclick = () => modal.close();
   if (qr) {
     const code = qr(0,'M');
@@ -57,6 +57,7 @@ async function stageAssetDetail(item) {
     modal.querySelector('#catalog-qr').innerHTML = code.createSvgTag({cellSize:4,margin:16});
   }
   modal.showModal();
+  showCatalogFiles(item, modal.querySelector('#catalog-files')).catch(fail);
 }
 
 async function stageAssetForm(item) {
@@ -93,4 +94,89 @@ async function stageAssetForm(item) {
       if (page === 'catalog') await renderStageSection('catalog');
       return false;
     });
+}
+
+const stageMedia = [
+  {bucket:'stage-catalog-photos',key:'photos',title:'Фотографії',accept:'image/jpeg,image/png,image/webp',limit:15},
+  {bucket:'stage-catalog-documents',key:'documents',title:'Документи',accept:'.pdf,.zip,.docx,.xlsx,.glb,.gltf,.mp4,.txt',limit:50}
+];
+
+async function showCatalogFiles(asset, target) {
+  const [access, files] = await Promise.all([
+    take(db.rpc('stage_catalog_media_capabilities')),
+    take(db.rpc('stage_catalog_list_files', {p_asset:asset.id}))
+  ]);
+  if (!target.isConnected || !modal.open) return;
+  target.replaceChildren();
+  const objectUrls = [];
+  modal.addEventListener('close', () => objectUrls.forEach(url => URL.revokeObjectURL(url)), {once:true});
+  for (const {bucket,key,title,accept,limit} of stageMedia) {
+    const section = document.createElement('section');
+    const heading = document.createElement('h3');
+    heading.textContent = title;
+    section.append(heading);
+    const entries = files.filter(file => file.bucket === bucket);
+    if (!entries.length) section.append('Файлів поки немає.');
+    for (const entry of entries) {
+      const row = document.createElement('div');
+      row.className = 'line';
+      const name = entry.object_path.split('/').at(-1).slice(37);
+      const label = document.createElement('small');
+      label.textContent = new Date(entry.uploaded_at).toLocaleString('uk-UA');
+      const open = document.createElement('button');
+      open.type = 'button';
+      open.className = 'full';
+      open.textContent = name;
+      open.onclick = async () => {
+        open.disabled = true;
+        try {
+          const file = await take(db.storage.from(bucket).download(entry.object_path));
+          if (!row.isConnected || !modal.open) return;
+          const url = URL.createObjectURL(file);
+          objectUrls.push(url);
+          if (key === 'photos') {
+            const image = document.createElement('img');
+            image.alt = name;
+            image.style.maxWidth = '100%';
+            image.src = url;
+            row.append(image);
+            open.remove();
+          } else {
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = name;
+            link.click();
+          }
+        } catch (error) { fail(error); }
+        finally { open.disabled = false; }
+      };
+      row.append(label,open);
+      section.append(row);
+    }
+    if (access[key]) {
+      const upload = document.createElement('label');
+      upload.className = 'full';
+      upload.textContent = key === 'photos' ? 'Додати фото' : 'Додати документ';
+      const fileInput = document.createElement('input');
+      fileInput.type = 'file';
+      fileInput.accept = accept;
+      upload.append(fileInput);
+      fileInput.onchange = async () => {
+        const file = fileInput.files[0];
+        if (!file) return;
+        if (file.size > limit*1024*1024) { toast('Максимальний розмір — ' + limit + ' МБ'); fileInput.value=''; return; }
+        const name = file.name.replace(/[^a-zA-Z0-9._-]/g,'_').slice(-120);
+        const objectPath = [asset.id,me.id,crypto.randomUUID() + '-' + (name || 'file')].join('/');
+        fileInput.disabled = true;
+        try {
+          await take(db.storage.from(bucket).upload(objectPath,file,{upsert:false,contentType:file.type || 'application/octet-stream'}));
+          toast('Файл збережено');
+          if (target.isConnected && modal.open) await showCatalogFiles(asset,target);
+        } catch (error) { fail(error); }
+        finally { fileInput.disabled=false; fileInput.value=''; }
+      };
+      section.append(upload);
+    }
+    target.append(section);
+  }
 }
