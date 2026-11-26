@@ -1,0 +1,15 @@
+{
+  "id":"./",
+  "name":"Stage Base Staging",
+  "short_name":"Stage Staging",
+  "lang":"uk",
+  "start_url":"./",
+  "scope":"./",
+  "display":"standalone",
+  "theme_color":"#10101d",
+  "background_color":"#10101d",
+  "icons":[
+    {"src":"../icons/stage-base-192.png","sizes":"192x192","type":"image/png"},
+    {"src":"../icons/stage-base-512.png","sizes":"512x512","type":"image/png"}
+  ]
+}
