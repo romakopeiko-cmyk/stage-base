@@ -193,16 +193,20 @@ function form(title, body, submit, submitLabel = 'Зберегти') {
   modal.querySelector('form').onsubmit = async event => {
     event.preventDefault();
     const button = event.submitter;
+    if (button.disabled) return;
+    const label = button.textContent;
     button.disabled = true;
+    button.textContent = label === 'Надіслати запрошення' ? 'Надсилаємо…' : 'Зачекайте…';
+    button.setAttribute('aria-busy','true');
     try { if (await submit(new FormData(event.target))) modal.close(); }
     catch (error) { fail(error); }
-    finally { button.disabled = false; }
+    finally { button.disabled = false; button.textContent = label; button.removeAttribute('aria-busy'); }
   };
   modal.showModal();
 }
 
 let page='login';
-const stageLabel = 'Staging 2.3.1';
+const stageLabel = 'Staging 2.3.2';
 function go(next='profile') {
   if(!me){login();return;}
   page=next; document.body.dataset.page=next;
@@ -297,4 +301,4 @@ document.addEventListener('DOMContentLoaded', async () => {
     else login();
   } catch (error) { login(); fail(error); }
 });
-</script><script src="./team-admin.js?v=4"></script></html>
+</script><script src="./team-admin.js?v=5"></script></html>

@@ -29,11 +29,9 @@ async function renderTeamAdmin(rights) {
       row.className = 'line';
       row.innerHTML = '<b>' + esc(member.full_name) + '</b><p>' + esc(member.job_title || roleNames.get(member.role_id)) + '</p><small>' +
         (member.is_active ? 'Активний профіль' : 'Деактивовано') + (member.is_admin ? ' · Адміністратор' : '') + '</small>';
-      if (members.some(other => other.id !== member.id && other.full_name.trim().toLocaleLowerCase('uk') === member.full_name.trim().toLocaleLowerCase('uk'))) {
-        const identifier = document.createElement('p');
-        identifier.textContent = 'Профіль ' + member.id.slice(-8);
-        row.append(identifier);
-      }
+      const email = document.createElement('p');
+      email.textContent = member.email || 'Електронна пошта недоступна';
+      row.append(email);
       const edit = document.createElement('button');
       edit.type = 'button';
       edit.className = 'full';
@@ -46,6 +44,17 @@ async function renderTeamAdmin(rights) {
         access.textContent = 'Права доступу';
         access.onclick = () => editStageLimits(member, rights).catch(fail);
         row.append(access);
+      }
+      if (rights.delegate && members.some(person => person.is_active && person.id !== member.id)) {
+        const menu = document.createElement('details');
+        menu.innerHTML = '<summary>Дії з профілем</summary>';
+        const transfer = document.createElement('button');
+        transfer.className = 'full';
+        transfer.type = 'button';
+        transfer.textContent = 'Передати активні завдання';
+        transfer.onclick = () => transferStageTasks(member, members, rights);
+        menu.append(transfer);
+        row.append(menu);
       }
       content.querySelector('#team-members').append(row);
     }
@@ -100,46 +109,44 @@ function editTeamMember(member, roles, rights) {
 function renderTeamActions(content, roles, members, invitations, rights) {
   const actions = document.createElement('section');
   actions.className = 'card';
+  const active = invitations.filter(item => item.status === 'pending' && Date.parse(item.expires_at) > Date.now()).length;
   actions.innerHTML = '<button class="primary full" id="invite">Запросити працівника</button>' +
-    '<button class="full" id="transfer">Передати активні завдання</button>' +
-    '<details><summary>Запрошення</summary><div id="invitations"></div></details>';
+    '<button class="full" id="invite-list" type="button" aria-controls="invitations" aria-expanded="false">Запрошення · ' +
+    active + '</button><div id="invitations" hidden></div>';
   content.prepend(actions);
+  const toggle = actions.querySelector('#invite-list');
+  const list = actions.querySelector('#invitations');
+  toggle.onclick = () => {
+    list.hidden = !list.hidden;
+    toggle.setAttribute('aria-expanded', String(!list.hidden));
+  };
+  if (!invitations.length) list.textContent = 'Запрошень поки немає.';
   const request = async payload => {
     try {
       const result = await take(db.functions.invoke('stage-invite', { body: payload }));
-      toast(result.message);
+      toast(payload.action === 'invite' ? 'Запрошення новому працівнику надіслано' : result.message);
       if (modal.open) modal.close();
+      await renderTeamAdmin(rights);
     } catch (error) {
       const body = await error.context?.json().catch(() => null);
-      toast(body?.message || error.message);
+      const message = body?.message || 'Не вдалося зв’язатися із сервером. Перевірте з’єднання та спробуйте ще раз.';
+      const notice = modal.open && modal.querySelector('[data-invitation-error]');
+      if (notice) notice.textContent = message;
+      else toast(message);
     }
-    await renderTeamAdmin(rights);
     return false;
   };
   actions.querySelector('#invite').onclick = () => {
     const options = roles.filter(role => !['executive_producer','creative_producer'].includes(role.code))
       .map(role => '<option value="' + esc(role.id) + '">' + esc(role.name) + '</option>').join('');
     form('Запросити працівника', '<label>Ім’я<input name="name" maxlength="120" required></label>' +
-      '<label>Email<input name="email" type="email" required></label><label>Системна роль<select name="role">' + options + '</select></label>',
+      '<label>Email<input name="email" type="email" required></label><label>Системна роль<select name="role">' + options + '</select></label><p data-invitation-error role="alert"></p>',
       data => request({ action: 'invite', ...Object.fromEntries(data) }), 'Надіслати запрошення');
-  };
-  actions.querySelector('#transfer').onclick = () => {
-    const options = people => '<option value="">Оберіть працівника</option>' + people.map(person =>
-      '<option value="' + esc(person.id) + '">' + esc(person.full_name) + '</option>').join('');
-    form('Передати активні командні завдання', '<label>Від<select name="from" required>' + options(members) +
-      '</select></label><label>Кому<select name="to" required>' + options(members.filter(person => person.is_active)) + '</select></label>',
-      async data => {
-        const count = await take(db.rpc('stage_team_transfer_tasks', { p_from: data.get('from'), p_to: data.get('to') }));
-        toast('Передано завдань: ' + count);
-        modal.close();
-        await renderTeamAdmin(rights);
-        return false;
-      });
   };
   for (const invitation of invitations) {
     const row = document.createElement('div');
     row.className = 'line';
-    const statuses = { pending: 'Очікує', revoked: 'Відкликано', accepted: 'Прийнято' };
+    const statuses = { pending: 'Очікує прийняття', revoked: 'Відкликано', accepted: 'Прийнято' };
     row.textContent = invitation.email + ' · ' + (invitation.status === 'pending' && Date.parse(invitation.expires_at) <= Date.now()
       ? 'Прострочено' : (statuses[invitation.status] || invitation.status));
     if (invitation.status === 'pending') {
@@ -147,12 +154,27 @@ function renderTeamActions(content, roles, members, invitations, rights) {
         const button = document.createElement('button');
         button.className = 'full';
         button.textContent = label;
-        button.onclick = async () => { button.disabled = true; await request({ action, id: invitation.id }); };
+        button.onclick = async () => { button.disabled = true; try { await request({ action, id: invitation.id }); } finally { button.disabled = false; } };
         row.append(button);
       }
     }
     actions.querySelector('#invitations').append(row);
   }
+}
+
+function transferStageTasks(member, members, rights) {
+  const options = members.filter(person => person.is_active && person.id !== member.id).map(person =>
+    '<option value="' + esc(person.id) + '">' + esc(person.full_name) +
+      (person.email ? ' · ' + esc(person.email) : '') + '</option>').join('');
+  form('Передати активні командні завдання', '<p>Поточний виконавець: ' + esc(member.full_name) +
+    '</p><label>Новий виконавець<select name="to" required><option value="">Оберіть працівника</option>' +
+    options + '</select></label>', async data => {
+    const count = await take(db.rpc('stage_team_transfer_tasks', { p_from: member.id, p_to: data.get('to') }));
+    toast('Передано завдань: ' + count);
+    modal.close();
+    await renderTeamAdmin(rights);
+    return false;
+  }, 'Передати завдання');
 }
 
 async function editStageLimits(member, rights) {
