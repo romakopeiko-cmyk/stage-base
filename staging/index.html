@@ -206,9 +206,21 @@ function form(title, body, submit, submitLabel = 'Зберегти') {
 }
 
 let page='login';
-const stageLabel = 'Staging 2.3.2';
+const stageLabel = 'Staging 2.3.3';
+function applyStagePermissions() {
+  const available = {
+    tasks: me.access.tasks, catalog: me.access.catalog, lookup: me.access.catalog,
+    shows: me.access.shows || me.access.warehouses
+  };
+  for (const [section, allowed] of Object.entries(available)) {
+    const button = document.querySelector(`nav button[onclick="go('${section}')"]`);
+    if (button) button.hidden = !allowed;
+  }
+  return available;
+}
 function go(next='profile') {
   if(!me){login();return;}
+  if (applyStagePermissions()[next] === false) next = 'profile';
   page=next; document.body.dataset.page=next;
   document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.getAttribute('onclick')==="go('"+next+"')"));
   window.scrollTo(0,0);
@@ -227,7 +239,7 @@ async function renderStageSection(next){
  try{
    if(next==='lookup'){el.innerHTML='<form class="card"><label>Інвентарний номер<input name="number" required></label><button class="primary full">Знайти</button></form><div id="found"></div>';el.querySelector('form').onsubmit=async e=>{e.preventDefault();try{const rows=await take(db.from('assets').select('name,inventory_number,condition').eq('inventory_number',new FormData(e.target).get('number').trim()).limit(10));el.querySelector('#found').innerHTML=rows.map(x=>card(x.name,x.inventory_number+' · '+x.condition)).join('')||'Не знайдено';}catch(error){fail(error)}};return;}
    let html='';
-   if(next==='shows'){for(const t of ['shows','warehouses']){const rows=await take(db.from(t).select('id,name').order('name'));html+='<h2>'+(t==='shows'?'Шоу':'Склади')+'</h2>'+rows.map(x=>card(x.name,'')).join('');}}
+   if(next==='shows'){for(const t of ['shows','warehouses']){if (!me.access[t]) continue; const rows=await take(db.from(t).select('id,name').order('name'));html+='<h2>'+(t==='shows'?'Шоу':'Склади')+'</h2>'+rows.map(x=>card(x.name,'')).join('');}}
    if(next==='catalog'){const rows=await take(db.from('assets').select('name,inventory_number,condition,quantity,unit').eq('archived',false).order('name').limit(100));html=rows.map(x=>card(x.name,x.inventory_number+' · '+x.quantity+' '+x.unit)).join('');}
    if(next==='tasks'){const rows=await take(db.from('stage_tasks').select('title,status,due_at').order('created_at',{ascending:false}).limit(100));html=rows.map(x=>card(x.title,x.status+(x.due_at?' · '+new Date(x.due_at).toLocaleDateString('uk-UA'):''))).join('');}
    if(next==='notifications'){const rows=await take(db.from('notifications').select('title,message').order('created_at',{ascending:false}).limit(50));html=rows.map(x=>card(x.title,x.message)).join('');}
@@ -271,6 +283,10 @@ async function openSession(session) {
   }
   me = await take(db.from('profiles').select('id,full_name,job_title').eq('id', session.user.id).single());
   me.email=session.user.email;
+  const checks = { tasks: 'tasks.read', catalog: 'assets.read', shows: 'shows.read', warehouses: 'warehouses.read' };
+  me.access = Object.fromEntries(await Promise.all(Object.entries(checks).map(async ([section, feature]) =>
+    [section, await take(db.rpc('stage_within_limits', { p_feature: feature, p_show: null, p_warehouse: null })) === true])));
+
   toast('');
   go('profile');
   if (accepted) editPassword(true);
@@ -301,4 +317,4 @@ document.addEventListener('DOMContentLoaded', async () => {
     else login();
   } catch (error) { login(); fail(error); }
 });
-</script><script src="./team-admin.js?v=5"></script></html>
+</script><script src="./team-admin.js?v=6"></script></html>
