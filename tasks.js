@@ -26,17 +26,19 @@ function taskOverdue(task) {
 
 function taskCard(task, draggable = false) {
   const card = document.createElement('article');
-  card.className = 'card line';
+  card.className = 'card task-card';
   card.dataset.priority = task.priority;
-  card.innerHTML = `<small>${esc(taskNumber(task.id))}</small><h3>${esc(task.title)}</h3>
-    <p>${esc(taskPriorities[task.priority])} · ${esc(taskStatuses[task.status])}</p>
-    ${task.due_at ? `<p>Строк ${esc(taskDate(task.due_at))}</p>` : ''}
-    ${taskOverdue(task) ? '<strong class="task-overdue">Прострочено</strong>' : ''}`;
-  const button = document.createElement('button');
-  button.className = 'full';
-  button.textContent = 'Відкрити';
-  button.onclick = () => taskForm(task);
-  card.append(button);
+  const open = document.createElement('button');
+  open.className = 'task-card-open';
+  open.innerHTML = `<small>${esc(taskNumber(task.id))}</small><strong>${esc(task.title)}</strong>
+    <span class="task-card-meta">
+      <span>${esc(taskStatuses[task.status])}</span>
+      <span>${esc(taskPriorities[task.priority])}</span>
+      ${task.due_at ? `<span>${esc(taskDate(task.due_at))}</span>` : ''}
+      ${taskOverdue(task) ? '<span class="task-overdue">Прострочено</span>' : ''}
+    </span>`;
+  open.onclick = () => taskForm(task);
+  card.append(open);
   if (draggable) {
     card.draggable = true;
     card.ondragstart = event => event.dataTransfer.setData('text/plain', String(task.id));
@@ -51,23 +53,34 @@ async function saveTask(task, values) {
 }
 
 async function renderTasks() {
-  app.innerHTML = '<h1>Мої завдання</h1><button class="primary full" id="add-task">Створити завдання</button>'
-    + '<label>Вигляд<select id="task-mode"><option value="active">Список</option><option value="board">Kanban</option>'
-    + '<option value="calendar">Календар</option><option value="archive">Виконані</option></select></label>'
-    + '<label>Пошук<input type="search" id="task-query"></label><div id="task-results" aria-live="polite">Завантаження…</div>';
+  const modes = { active: 'Список', board: 'Дошка', calendar: 'Календар', archive: 'Виконані' };
+  app.innerHTML = `
+    <div class="task-heading"><h1>Мої завдання</h1><button class="primary" id="add-task">Нове завдання</button></div>
+    <div class="task-views" role="group" aria-label="Вигляд завдань">
+      ${Object.entries(modes).map(([value, label]) => `<button type="button" data-mode="${value}">${label}</button>`).join('')}
+    </div>
+    <div class="task-filters">
+      <label>Пошук<input type="search" id="task-query" placeholder="Назва або номер"></label>
+      <label>Пріоритет<select id="task-priority"><option value="">Усі</option>
+        ${Object.entries(taskPriorities).map(([key, label]) => `<option value="${key}">${label}</option>`).join('')}
+      </select></label>
+    </div>
+    <div id="task-results" aria-live="polite">Завантаження…</div>`;
   const results = app.querySelector('#task-results');
-  const mode = app.querySelector('#task-mode');
+  const modesButtons = [...app.querySelectorAll('[data-mode]')];
   const query = app.querySelector('#task-query');
-  mode.value = taskMode;
+  const priority = app.querySelector('#task-priority');
   app.querySelector('#add-task').onclick = () => taskForm();
   try {
     const tasks = await readTasks();
     if (!results.isConnected) return;
     const renderResults = () => {
-      taskMode = mode.value;
+      modesButtons.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.mode === taskMode)));
+      results.classList.toggle('task-board', taskMode === 'board');
       const term = query.value.trim().toLocaleLowerCase('uk');
       const filtered = tasks.filter(task => (taskMode === 'archive' ? task.status === 'done' :
         taskMode === 'board' || task.status !== 'done') &&
+        (!priority.value || task.priority === priority.value) &&
         [task.title, task.description, taskNumber(task.id)].join(' ').toLocaleLowerCase('uk').includes(term));
       results.replaceChildren();
 
@@ -98,7 +111,10 @@ async function renderTasks() {
       filtered.forEach(task => results.append(taskCard(task)));
       if (!filtered.length) results.textContent = 'Немає завдань за цими параметрами.';
     };
-    mode.onchange = query.oninput = renderResults;
+    modesButtons.forEach(button => {
+      button.onclick = () => { taskMode = button.dataset.mode; renderResults(); };
+    });
+    query.oninput = priority.onchange = renderResults;
     renderResults();
   } catch (error) {
     if (results.isConnected) results.textContent = 'Не вдалося завантажити завдання.';
