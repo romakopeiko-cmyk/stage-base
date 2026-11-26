@@ -1,6 +1,6 @@
 'use strict';
 
-const stageRelease = '2.2.1';
+const stageRelease = '2.2.2';
 
 function startReleaseUpdates() {
   if (!('serviceWorker' in navigator)) return;

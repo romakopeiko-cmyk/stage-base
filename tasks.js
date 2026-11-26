@@ -105,6 +105,7 @@ async function renderTasks() {
     <div class="task-quick" role="group" aria-label="Терміни завдань">
       ${Object.entries(quickFilters).map(([value, label]) => `<button type="button" data-quick="${value}">${label}</button>`).join('')}
     </div>
+    <details class="task-filter-panel"><summary>Фільтри <output id="task-filter-count" aria-label="Активні фільтри"></output></summary>
     <div class="task-filters">
       <label>Пошук<input type="search" id="task-query" placeholder="Назва або номер"></label>
       <label>Статус<select id="task-filter-status"><option value="">Усі</option>
@@ -114,6 +115,7 @@ async function renderTasks() {
         ${Object.entries(taskPriorities).map(([key, label]) => `<option value="${key}">${label}</option>`).join('')}
       </select></label>
     </div>
+    </details>
     <div id="task-results" aria-live="polite">Завантаження…</div>`;
   const results = app.querySelector('#task-results');
   const modesButtons = [...app.querySelectorAll('[data-mode]')];
@@ -132,6 +134,10 @@ async function renderTasks() {
       modesButtons.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.mode === taskMode)));
       results.classList.toggle('task-board', taskMode === 'board');
       const term = query.value.trim().toLocaleLowerCase('uk');
+      const count = [term, priority.value, statusFilter.value, taskQuickFilter !== 'all'].filter(Boolean).length;
+      const filterCount = app.querySelector('#task-filter-count');
+      filterCount.textContent = count;
+      filterCount.hidden = count === 0;
       const filtered = tasks.filter(task => (taskMode === 'archive' ? task.status === 'done' :
         taskMode === 'board' || taskMode === 'calendar' || task.status !== 'done') && timeMatch(task) &&
         (!statusFilter.value || task.status === statusFilter.value) && (!priority.value || task.priority === priority.value) &&
@@ -233,6 +239,23 @@ function taskForm(task, date) {
       return false;
     }
   });
+  modal.classList.add('task-editor');
+  const viewport = window.visualViewport;
+  const fitEditor = () => {
+    if (!viewport || viewport.scale !== 1) return;
+    modal.style.setProperty('--editor-top', viewport.offsetTop + 'px');
+    modal.style.setProperty('--editor-height', viewport.height + 'px');
+  };
+  fitEditor();
+  viewport?.addEventListener('resize', fitEditor);
+  viewport?.addEventListener('scroll', fitEditor);
+  modal.addEventListener('close', () => {
+    viewport?.removeEventListener('resize', fitEditor);
+    viewport?.removeEventListener('scroll', fitEditor);
+    modal.classList.remove('task-editor');
+    modal.style.removeProperty('--editor-top');
+    modal.style.removeProperty('--editor-height');
+  }, { once: true });
   const description = modal.querySelector('[name=description]');
   const preview = modal.querySelector('.task-description-preview');
   const markup = text => esc(text).replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
@@ -423,8 +446,8 @@ function renderTaskCalendar(container, tasks, { full = false, bookings = [] } = 
         const label = time.toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' });
         const row = document.createElement('div');
         row.className = 'calendar-hour';
-        const add = button(days === 7 ? (time.getMinutes() || start.getTimezoneOffset() !== end.getTimezoneOffset() ? label : '+') : label,
-          () => taskForm(null, time.toISOString()));
+        const add = button(days === 7 ? '' : label, () => taskForm(null, time.toISOString()));
+        add.className = 'calendar-slot';
         if (+now >= instant && +now < instant + 3600000) {
           currentHour = row;
           const marker = document.createElement('span');
@@ -475,6 +498,14 @@ function renderTaskCalendar(container, tasks, { full = false, bookings = [] } = 
       : mode === 'year' ? String(selected.getFullYear()) : selected.toLocaleDateString('uk-UA', { month: 'long', year: 'numeric' });
     controls.replaceChildren();
     controls.classList.toggle('calendar-year', mode === 'year');
+    if (full && mode === 'month') {
+      for (let offset = 0; offset < 7; offset++) {
+        const weekday = document.createElement('span');
+        weekday.className = 'calendar-weekday';
+        weekday.textContent = dateShift(first, offset).toLocaleDateString('uk-UA', { weekday: 'short' });
+        controls.append(weekday);
+      }
+    }
     timeline.replaceChildren();
     if (mode === 'year') {
       for (let month = 0; month < 12; month++) {
@@ -494,6 +525,7 @@ function renderTaskCalendar(container, tasks, { full = false, bookings = [] } = 
         : day.toLocaleDateString('uk-UA', { weekday: 'short', day: 'numeric' }), () => { selected = day; draw(); });
       cell.setAttribute('aria-label', dateLabel(day) + ' · Подій: ' + (due.length + reserved.length));
       cell.setAttribute('aria-pressed', String(sameDay(day, selected)));
+      if (sameDay(day, new Date())) cell.setAttribute('aria-current', 'date');
       cell.classList.toggle('calendar-outside', mode === 'month' && day.getMonth() !== selected.getMonth());
       cell.classList.toggle('calendar-has-events', due.length + reserved.length > 0);
       if (full) addDateDrop(cell, day);
