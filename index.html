@@ -187,6 +187,16 @@ if (!allowedIntegrationHost || !integrationConfig?.publishableKey) {
   throw new Error('Missing isolated integration configuration');
 }
 const db=window.supabase.createClient(integrationConfig.url,integrationConfig.publishableKey);
+const recoverySession = authCallback.get('type') === 'recovery' && authCallback.has('access_token')
+  ? new Promise(resolve => {
+    const timer = setTimeout(() => { subscription.unsubscribe(); resolve(null); },5000);
+    const {data:{subscription}} = db.auth.onAuthStateChange((event,session) => {
+      if (event !== 'PASSWORD_RECOVERY') return;
+      clearTimeout(timer);
+      subscription.unsubscribe();
+      resolve(session);
+    });
+  }) : null;
 let me=null, refs={}, records=[], active=null, busy=false;
 const catalog = { query: '', category: '', show: '', warehouse: '', condition: '', layout: 'gallery' };
 const conditions = ['unverified', 'excellent', 'good', 'fair', 'damaged', 'unusable'];
@@ -221,7 +231,13 @@ function recoverStagePassword() {
 }
 
 async function openStagePasswordRecovery() {
-  const { session } = await take(db.auth.getSession());
+  if (!authCallback.has('access_token')) {
+    history.replaceState(null,'',location.pathname+location.search);
+    toast('Посилання відновлення недійсне або прострочене.');
+    return;
+  }
+  const session = await recoverySession;
+  history.replaceState(null,'',location.pathname+location.search);
   if (!session) { toast('Посилання відновлення недійсне або прострочене.'); return; }
   form('Новий пароль','<label>Встановіть пароль<input type="password" name="password" autocomplete="new-password" minlength="12" required></label>',
     async data => {
