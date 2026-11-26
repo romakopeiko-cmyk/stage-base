@@ -232,13 +232,19 @@ function bindAccessFields() {
 
 async function editStageLimits(member, rights, manageable) {
   const current = await take(db.rpc('stage_team_limits', { p_user: member.id }));
-  const options = manageable.filter(person => person.id !== member.id);
+  const people = manageable.filter(person => person.id !== member.id);
+  const catalogAccess = await take(db.rpc('stage_catalog_permissions_for', { p_user: member.id }));
   form('Права доступу · ' + member.full_name, `
     <label>Копіювати права працівника<select id="copy-permissions"><option value="">Оберіть працівника</option>
-      ${options.map(person => `<option value="${esc(person.id)}">${esc(person.full_name)} · ${esc(person.email || 'Пошту не вказано')}</option>`).join('')}
-    </select></label>` + accessFields(current, current.limits || {}),
+      ${people.map(person => `<option value="${esc(person.id)}">${esc(person.full_name)} · ${esc(person.email || 'Пошту не вказано')}</option>`).join('')}
+    </select></label>` + accessFields(current, current.limits || {}) +
+    '<section class="invite-section"><h3>Запис у каталог</h3><label class="invite-check"><input type="checkbox" name="catalog_create" ' +
+    (catalogAccess.can_create ? 'checked' : '') + '> Додавати майно</label><label class="invite-check"><input type="checkbox" name="catalog_edit" ' +
+    (catalogAccess.can_edit ? 'checked' : '') + '> Редагувати картки</label></section>',
     async data => {
-      await take(db.rpc('stage_team_limits', { p_user: member.id, p_limits: accessFrom(data) }));
+      await take(db.rpc('stage_save_catalog_member_access', {
+        p_user: member.id,p_limits:accessFrom(data),p_create:data.has('catalog_create'),p_edit:data.has('catalog_edit')
+      }));
       toast('Права доступу збережено');
       modal.close();
       await renderTeamAdmin(rights);
