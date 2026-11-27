@@ -252,7 +252,7 @@ function liveResults() {
  const container = document.querySelector('#liveresults');
  const gallery = catalog.layout === 'gallery';
  container.className = gallery ? 'grid catalog' : 'catalog-list';
- document.querySelector('#livecount').textContent = results.length + ' позицій';
+ document.querySelector('#livecount').textContent = results.length + ' ' + (results.length % 100 >= 11 && results.length % 100 <= 14 ? 'позицій' : results.length % 10 === 1 ? 'позиція' : [2,3,4].includes(results.length % 10) ? 'позиції' : 'позицій');
  container.innerHTML = results.map(asset => gallery ? liveCard(asset) : `
   <button type="button" class="card full" onclick="liveDetail('${safeId(asset.id)}')">
    <strong>${esc(asset.name)}</strong><br>
@@ -273,6 +273,7 @@ function renderCatalog() {
   </select></label>`;
  app.innerHTML = `
   <h1>Каталог майна</h1>
+  <div class="grid"><button class="full" onclick="go('reservations')">Бронювання</button><button class="full" onclick="go('stock')">Складські операції</button></div>
   <details class="card catalog-overview">
    <summary>Майно та склад</summary>
    <div class="grid">${[
@@ -281,13 +282,12 @@ function renderCatalog() {
      ['Не перевірено',records.filter(asset=>asset.condition==='unverified').length],
      ['Пошкоджено',records.filter(asset=>asset.condition==='damaged').length]
    ].map(([label,value])=>`<div class="card metric"><small>${label}</small><strong>${value}</strong></div>`).join('')}</div>
-   <button class="full" onclick="go('reservations')">Бронювання</button>
-   <button class="full" onclick="go('stock')">Складські операції</button>
    <button class="full" onclick="go('shows')">Шоу та склади</button>
    ${intakeRole()?`<button class="full" onclick="go('import-intake')">Майно потребує уточнення</button>`:''}
   </details>
   <label>Пошук<input type="search" placeholder="Назва, номер, матеріал, тег"
    value="${esc(catalog.query)}" oninput="catalogFilter('query',this.value)"></label>
+  <details class="card" ${catalog.category || catalog.show || catalog.warehouse || catalog.condition ? 'open' : ''}><summary>Фільтри</summary>
   ${selectRefs('category', 'categories', 'Категорія')}
   ${selectRefs('show', 'shows', 'Шоу')}
   ${selectRefs('warehouse', 'warehouses', 'Склад')}
@@ -295,6 +295,7 @@ function renderCatalog() {
    <option value="">Усі</option>
    ${conditions.map(value => `<option value="${value}" ${value === catalog.condition ? 'selected' : ''}>${cond(value)}</option>`).join('')}
   </select></label>
+  </details>
   <label>Вигляд<select onchange="catalogFilter('layout',this.value)">
    <option value="gallery">Галерея</option>
    <option value="list" ${catalog.layout === 'list' ? 'selected' : ''}>Список</option>
