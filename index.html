@@ -200,6 +200,7 @@ async function loadLive(){
  records=[];for(let i=0;;i+=500){const rows=await take(db.from('assets').select('id,inventory_number,qr_code,name,description,category_id,show_id,warehouse_id,condition,location_type,tracking_type,quantity,unit,color,material,width_cm,height_cm,depth_cm,weight_kg,tags,notes,is_marketing_asset,is_archived,inspection_due_at').eq('is_archived',false).order('id').range(i,i+499));records.push(...rows);if(rows.length<500)break}
 }
 async function loginLive(e){e.preventDefault();if(busy)return;busy=true;const b=e.target.querySelector('button[type=submit]');b.disabled=true;try{await take(db.auth.signInWithPassword({email:e.target.email.value.trim(),password:e.target.password.value}));await loadLive();go('tasks')}catch(e){me=null;await db.auth.signOut();fail(e)}finally{busy=false;b.disabled=false}}
+function changeOwnPassword(){form('Зміна пароля','<label>Новий пароль<input name="password" type="password" autocomplete="new-password" minlength="12" required></label><label>Повторіть пароль<input name="confirm" type="password" autocomplete="new-password" minlength="12" required></label>',async d=>{if(d.get('password')!==d.get('confirm')){toast('Паролі не збігаються');return false}try{await take(db.auth.updateUser({password:d.get('password')}));toast('Пароль змінено');return true}catch(e){fail(e);return false}})}
 async function logoutLive(){stopCamera();await db.auth.signOut();me=null;records=[];refs={};active=null;Object.assign(catalog,{query:'',category:'',show:'',warehouse:'',condition:'',layout:'gallery'});go('login')}
 function liveCard(a){return '<article class="card asset" onclick="liveDetail(\''+safeId(a.id)+'\')"><div class="photo"><span class="placeholder">'+ico('box')+'</span></div><h3>'+esc(a.name)+'</h3><small>'+esc(a.inventory_number)+' · '+esc(locationOf(a))+'</small><br><span class="badge warn">'+esc(cond(a.condition))+'</span></article>'}
 function liveResults() {
@@ -277,7 +278,7 @@ if(page==='reservations'){renderReservations();return}
 if(page==='tasks'){renderTasks();return}
 if(page==='import-intake'){renderImportIntake();return}
 if(page==='notifications'){renderInbox();return}
-if(page==='profile'){app.innerHTML='<h1>Профіль</h1><div class="card"><b>'+esc(me.full_name)+'</b><p>'+esc(me.role.name)+'</p><small>'+esc(me.email)+'</small><p>Версія '+esc(stageRelease)+'</p></div>'+'<button class="full" onclick="logoutLive()">Вийти</button>';return}
+if(page==='profile'){app.innerHTML='<h1>Профіль</h1><div class="card"><b>'+esc(me.full_name)+'</b><p>'+esc(me.role.name)+'</p><small>'+esc(me.email)+'</small><p>Версія '+esc(stageRelease)+'</p></div>'+'<button class="full" onclick="changeOwnPassword()">Встановити або змінити пароль</button><button class="full" onclick="logoutLive()">Вийти</button>';return}
 if(page==='lookup'){
  renderLookup(app, code => {
   const query = code.trim().toLowerCase();
