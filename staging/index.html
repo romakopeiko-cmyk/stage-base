@@ -187,7 +187,7 @@ dialog:has(.invite-details) .dialog-actions .primary{flex:1;background:#ffd600;c
 [data-invitation-error]:empty{display:none}
 [data-invitation-error]{color:#9c2231}
 @media(min-width:580px){.invite-grid,.invite-permissions{grid-template-columns:repeat(2,minmax(0,1fr))}}
-#catalog-qr svg{width:148px;height:148px}</style><header><div class="brandlock"><svg class="mascot" viewBox="0 0 64 70" aria-hidden="true"><path fill="#ffd600" d="M12 49C-2 39 0 13 16 7c13-5 23 3 24 15 14-7 26 4 23 18-3 17-24 31-39 27-9-2-14-9-12-18Z"/><g fill="#1a1a1a"><circle cx="17" cy="23" r="2.8"/><circle cx="26" cy="22" r="2.8"/><circle cx="43" cy="34" r="2.8"/><circle cx="52" cy="34" r="2.8"/></g></svg><div class="brandwords">STAGE BASE<small>by Stage Show Company</small><div class="staging-tag">STAGING · ТЕСТОВА БАЗА</div></div></div><button onclick="go('notifications')" aria-label="Сповіщення"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 18h16l-2-4V9a6 6 0 00-12 0v5zM10 21h4"/></svg></button></header><main id="app"></main><nav><button onclick="go('tasks')"><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m4 6 1.5 1.5L8 5m2 1h10M4 12l1.5 1.5L8 11m2 1h10M4 18l1.5 1.5L8 17m2 1h10"/></svg></b>Завдання</button><button onclick="go('catalog')"><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></b>Каталог</button><button class="scan" onclick="go('lookup')" aria-label="Сканувати QR або знайти за номером"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 9V3h6m6 0h6v6m0 6v6h-6m-6 0H3v-6M8 8h3v3H8zm6 0h2v2h-2zm-6 6h3v3H8zm6 0h3v3h-3z"/></svg></button><button onclick="go('shows')"><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="9" width="18" height="12" rx="2"/><path d="M3 9l17-5-1-3L2 6zM7 5l3 3m4-5 3 3"/></svg></b>Шоу</button><button onclick="go('profile')"><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="7" r="4"/><path d="M4 21v-2a8 8 0 0116 0v2z"/></svg></b>Профіль</button></nav><dialog id="modal"></dialog><div id="toast"></div><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.90.1/dist/umd/supabase.min.js"></script><script src="../labels.js?v=2.2.2"></script><script src="../tasks.js?v=2.2.2"></script><script>'use strict';
+#catalog-qr svg{width:148px;height:148px}</style><header><div class="brandlock"><svg class="mascot" viewBox="0 0 64 70" aria-hidden="true"><path fill="#ffd600" d="M12 49C-2 39 0 13 16 7c13-5 23 3 24 15 14-7 26 4 23 18-3 17-24 31-39 27-9-2-14-9-12-18Z"/><g fill="#1a1a1a"><circle cx="17" cy="23" r="2.8"/><circle cx="26" cy="22" r="2.8"/><circle cx="43" cy="34" r="2.8"/><circle cx="52" cy="34" r="2.8"/></g></svg><div class="brandwords">STAGE BASE<small>by Stage Show Company</small><div class="staging-tag">STAGING · ТЕСТОВА БАЗА</div></div></div><button onclick="go('notifications')" aria-label="Сповіщення"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 18h16l-2-4V9a6 6 0 00-12 0v5zM10 21h4"/></svg></button></header><main id="app"></main><nav><button onclick="go('tasks')"><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m4 6 1.5 1.5L8 5m2 1h10M4 12l1.5 1.5L8 11m2 1h10M4 18l1.5 1.5L8 17m2 1h10"/></svg></b>Завдання</button><button onclick="go('catalog')"><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></b>Каталог</button><button class="scan" onclick="go('lookup')" aria-label="Сканувати QR або знайти за номером"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 9V3h6m6 0h6v6m0 6v6h-6m-6 0H3v-6M8 8h3v3H8zm6 0h2v2h-2zm-6 6h3v3H8zm6 0h3v3h-3z"/></svg></button><button onclick="go('shows')"><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="9" width="18" height="12" rx="2"/><path d="M3 9l17-5-1-3L2 6zM7 5l3 3m4-5 3 3"/></svg></b>Шоу</button><button onclick="go('profile')"><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="7" r="4"/><path d="M4 21v-2a8 8 0 0116 0v2z"/></svg></b>Профіль</button></nav><dialog id="modal"></dialog><div id="toast"></div><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.90.1/dist/umd/supabase.min.js"></script><script src="../labels.js?v=2.2.2"></script><script src="../tasks.js?v=2.2.2"></script><script src="../reservations.js?v=2.2.2"></script><script>'use strict';
 
 const callback = new URLSearchParams(location.hash.slice(1));
 const db = window.supabase.createClient('https://cnkwvrxlvvtmfiubtyks.supabase.co', 'sb_publishable_tJdds19lGTk7W-Fj0PqXNQ_t0Q5tevw');
@@ -208,7 +208,7 @@ async function take(request) {
 function form(title, body, submit, submitLabel = 'Зберегти') {
   modal.innerHTML = '<h2>' + esc(title) + '</h2><form>' + body +
     '<div class="dialog-actions"><button class="primary full">' + esc(submitLabel) + '</button><button class="full" type="button">Скасувати</button></div></form>';
-  modal.querySelector('[type=button]').onclick = () => modal.close();
+  modal.querySelector('.dialog-actions button[type=button]').onclick = () => modal.close();
   modal.querySelector('form').onsubmit = async event => {
     event.preventDefault();
     const button = event.submitter;
@@ -224,8 +224,32 @@ function form(title, body, submit, submitLabel = 'Зберегти') {
   modal.showModal();
 }
 
+let records = [];
+let reservationShows = [];
+const safeId = value => /^[0-9a-f-]{36}$/i.test(value) ? value : '';
+function optionIds(table) {
+  return '<option value="">Оберіть шоу</option>' + (table === 'shows' ? reservationShows : []).map(show =>
+    '<option value="' + safeId(show.id) + '">' + esc(show.name) + '</option>').join('');
+}
+function field(name,label,type='text',required=true) {
+  return '<label>' + esc(label) + '<input name="' + esc(name) + '" type="' + esc(type) + '"' +
+    (required ? ' required' : '') + '></label>';
+}
+async function openStageReservations() {
+  const [assets, shows] = await Promise.all([
+    take(db.from('assets').select('id,name,inventory_number').eq('archived',false).order('name').limit(200)),
+    take(db.from('shows').select('id,name').eq('status','active').order('name'))
+  ]);
+  if (!me || page !== 'reservations') return;
+  records = assets;
+  reservationShows = shows;
+  return renderReservations();
+}
+modal.addEventListener('close', () => {
+  if (me && page === 'reservations') renderReservations();
+});
 let page='login';
-const stageLabel = 'Staging 2.3.7';
+const stageLabel = 'Staging 2.3.8';
 function applyStagePermissions() {
   const available = {
     tasks: me.access.tasks, catalog: me.access.catalog, lookup: me.access.catalog,
@@ -244,6 +268,7 @@ function go(next='profile') {
   page=next; document.body.dataset.page=next;
   document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.getAttribute('onclick')==="go('"+next+"')"));
   window.scrollTo(0,0);
+  if (next === 'reservations') { openStageReservations().catch(fail); return; }
   if(next!=='profile'){renderStageSection(next);return;}
   app.innerHTML='<h1>Профіль</h1><div class="card"><b>'+esc(me.full_name)+'</b><p>'+esc(me.job_title)+'</p><small>'+esc(me.email)+'</small><p>Версія '+stageLabel+'</p></div>'+
   '<button class="full" id="profile-team" hidden>Команда · керування працівниками</button><button class="full" id="password">Встановити або змінити пароль</button><button class="full" id="logout">Вийти</button>';
@@ -280,7 +305,19 @@ async function renderStageSection(next){
    }
    let html='';
    if(next==='shows'){for(const t of ['shows','warehouses']){if (!me.access[t]) continue; const rows=await take(db.from(t).select('id,name').order('name'));html+='<h2>'+(t==='shows'?'Шоу':'Склади')+'</h2>'+rows.map(x=>card(x.name,'')).join('');}}
-   if (next === 'catalog') { app.querySelector('.card').remove(); await renderStageCatalog(el); return; }
+   if (next === 'catalog') {
+     app.querySelector('.card').remove();
+     await renderStageCatalog(el);
+     if (!el.isConnected) return;
+     const booking = await take(db.rpc('stage_list_reservations'));
+     if (!el.isConnected || !(booking.can_create || booking.can_view || booking.reservations.length)) return;
+     const link = document.createElement('button');
+     link.className = 'full';
+     link.textContent = 'Бронювання';
+     link.onclick = () => go('reservations');
+     el.before(link);
+     return;
+   }
    if (next === 'tasks') {
      app.querySelector('.card').remove();
      const rows = await take(db.from('stage_tasks')
