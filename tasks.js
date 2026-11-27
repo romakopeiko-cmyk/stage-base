@@ -17,7 +17,7 @@ async function readTasks() {
   const items = [];
   for (let start = 0; ; start += 100) {
     const batch = await take(db.from('stage_tasks')
-      .select('id,title,description,priority,status,starts_at,due_at,updated_at')
+      .select('id,owner_id,assigned_by,show_id,title,description,priority,status,starts_at,due_at,updated_at')
       .order('due_at', { nullsFirst: false }).order('id').range(start, start + 99));
     items.push(...batch);
     if (batch.length < 100) return items;
@@ -44,9 +44,14 @@ function taskCard(task, draggable = false) {
       ${task.due_at ? `<span>${esc(taskDate(task.due_at))}</span>` : ''}
       ${taskOverdue(task) ? '<span class="task-overdue">Прострочено</span>' : ''}
     </span>`;
-  open.onclick = () => taskForm(task);
+  open.onclick = () => openStageTask(task);
   card.append(open);
-  if (draggable) {
+  const details = document.createElement('button');
+  details.className = 'full';
+  details.textContent = 'Обговорення та історія';
+  details.onclick = () => openTaskDetails(task);
+  card.append(details);
+  if (draggable && !task.assigned_by) {
     card.draggable = true;
     card.ondragstart = event => {
       event.dataTransfer.effectAllowed = 'move';
@@ -99,6 +104,7 @@ async function renderTasks() {
   };
   app.innerHTML = `
     <div class="task-heading"><h1>Завдання</h1><button class="primary" id="add-task">Нове завдання</button></div>
+    ${canManageTeamTasks() ? '<button class="full" id="team-task-create" type="button">Призначити командне завдання</button>' : ''}
     <div class="task-views" role="group" aria-label="Вигляд завдань">
       ${Object.entries(modes).map(([value, label]) => `<button type="button" data-mode="${value}">${label}</button>`).join('')}
     </div>
@@ -124,6 +130,8 @@ async function renderTasks() {
   const statusFilter = app.querySelector('#task-filter-status');
   const priority = app.querySelector('#task-priority');
   app.querySelector('#add-task').onclick = () => taskForm();
+  const assignButton = app.querySelector('#team-task-create');
+  if (assignButton) assignButton.onclick = teamTaskForm;
   try {
     const tasks = await readTasks();
     if (!results.isConnected) return;
@@ -202,6 +210,11 @@ function localDateValue(value) {
   if (!value) return '';
   const date = new Date(value);
   return new Date(+date - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+}
+
+function openStageTask(task) {
+  if (task.assigned_by) openAssignedTask(task);
+  else taskForm(task);
 }
 
 function taskForm(task, date) {
@@ -423,7 +436,7 @@ function renderTaskCalendar(container, tasks, { full = false, bookings = [] } = 
         const covered = week.map(dayKey).map((key, index) => key >= starts && key <= ends ? index : -1)
           .filter(index => index >= 0);
         if (!covered.length) continue;
-        const entry = button(task.title, () => taskForm(task));
+        const entry = button(task.title, () => openStageTask(task));
         entry.style.gridColumn = (covered[0] + 2) + ' / span ' + covered.length;
         spans.append(entry);
       }
@@ -462,7 +475,7 @@ function renderTaskCalendar(container, tasks, { full = false, bookings = [] } = 
         const within = value => value && +new Date(value) >= instant && +new Date(value) < instant + 3600000;
         for (const task of due) {
           if (!within(task.starts_at) && !within(task.due_at)) continue;
-          const entry = button((within(task.due_at) ? 'Строк · ' : '') + task.title, () => taskForm(task));
+          const entry = button((within(task.due_at) ? 'Строк · ' : '') + task.title, () => openStageTask(task));
           entry.className = 'calendar-hour-entry';
           row.append(entry);
         }
