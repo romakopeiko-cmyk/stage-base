@@ -1,8 +1,8 @@
 Deno.serve(async request => {
   const origin = request.headers.get('Origin') ?? '';
   const local = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
-  const staging = origin === 'https://romakopeiko-cmyk.github.io';
-  const allowedOrigin = local || staging;
+  // Canonical integration is local-only until a compatible hosted target is approved.
+  const allowedOrigin = local;
   const headers = {
     'Access-Control-Allow-Origin': allowedOrigin ? origin : 'null',
     'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info',
@@ -21,9 +21,7 @@ Deno.serve(async request => {
   const privileged = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
   if (!base || !anon || !privileged) return respond(503,'Авторизацію не налаштовано.');
   const backend = new URL(base);
-  const compatibleBackend = staging
-    ? backend.origin === 'https://cnkwvrxlvvtmfiubtyks.supabase.co'
-    : backend.protocol === 'http:' && (['127.0.0.1','localhost','kong'].includes(backend.hostname) || backend.hostname.startsWith('supabase_kong_'));
+  const compatibleBackend = backend.protocol === 'http:' && (['127.0.0.1','localhost','kong'].includes(backend.hostname) || backend.hostname.startsWith('supabase_kong_'));
   if (!compatibleBackend) return respond(403,'Сервер не є погодженим тестовим середовищем.');
   try {
     const {email,name,phone,job,actions,shows,warehouses} = await request.json();
@@ -41,7 +39,7 @@ Deno.serve(async request => {
       return error.code === '23505' ? respond(409,'Для цієї адреси вже є профіль або активне запрошення.')
         : respond(created.status === 403 ? 403 : 400,'Не вдалося підготувати запрошення. Перевірте права й дані.');
     }
-    const redirect = encodeURIComponent(origin + (staging ? '/stage-base/staging/' : '/'));
+    const redirect = encodeURIComponent(origin + '/');
     const sent = await fetch(base+'/auth/v1/invite?redirect_to='+redirect,{
       method:'POST',headers:{Authorization:'Bearer '+privileged,apikey:privileged,'Content-Type':'application/json'},
       body:JSON.stringify({email:email.trim().toLowerCase()})
