@@ -203,10 +203,13 @@ async function loginLive(e){e.preventDefault();if(busy)return;busy=true;const b=
 function changeOwnPassword(){form('Зміна пароля','<label>Новий пароль<input name="password" type="password" autocomplete="new-password" minlength="12" required></label><label>Повторіть пароль<input name="confirm" type="password" autocomplete="new-password" minlength="12" required></label>',async d=>{if(d.get('password')!==d.get('confirm')){toast('Паролі не збігаються');return false}try{await take(db.auth.updateUser({password:d.get('password')}));toast('Пароль змінено');return true}catch(e){fail(e);return false}})}
 async function logoutLive(){stopCamera();await db.auth.signOut();me=null;records=[];refs={};active=null;Object.assign(catalog,{query:'',category:'',show:'',warehouse:'',condition:'',layout:'gallery'});go('login')}
 function liveCard(a){return '<article class="card asset" onclick="liveDetail(\''+safeId(a.id)+'\')"><div class="photo"><span class="placeholder">'+ico('box')+'</span></div><h3>'+esc(a.name)+'</h3><small>'+esc(a.inventory_number)+' · '+esc(locationOf(a))+'</small><br><span class="badge warn">'+esc(cond(a.condition))+'</span></article>'}
+let importedCatalog = [];
+let catalogVisible = 100;
+const canSeeImportedCatalog = () => ['executive_producer','creative_producer','warehouse_manager'].includes(roleCode());
 function liveResults() {
  const query = catalog.query.trim().toLocaleLowerCase('uk');
- const results = records.filter(asset => {
-  const searchable = [asset.name, asset.inventory_number, asset.qr_code, asset.material, asset.color, ...(asset.tags || [])];
+ const results = [...records,...importedCatalog].filter(asset => {
+  const searchable = [asset.name, asset.inventory_number, asset.qr_code, asset.material, asset.color, asset.show_hint, asset.warehouse_hint, asset.category_hint, ...(asset.tags || [])];
   return searchable.join(' ').toLocaleLowerCase('uk').includes(query) &&
    (!catalog.category || asset.category_id === catalog.category) &&
    (!catalog.show || asset.show_id === catalog.show) &&
@@ -217,20 +220,76 @@ function liveResults() {
  const gallery = catalog.layout === 'gallery';
  container.className = gallery ? 'grid catalog' : 'catalog-list';
  document.querySelector('#livecount').textContent = results.length + ' позицій';
- container.innerHTML = results.map(asset => gallery ? liveCard(asset) : `
+ container.innerHTML = results.slice(0,catalogVisible).map(asset => asset.import_id ?
+  `<button type="button" class="card full" data-import-id="${Number(asset.import_id)}">
+    <strong>${esc(asset.name)}</strong><br><small>${esc(asset.inventory_number)} · ${esc(asset.quantity ?? 'Кількість невідома')} ${esc(asset.unit ?? '')}</small>
+    <br><span class="badge warn">Не перевірено</span></button>` : gallery ? liveCard(asset) : `
   <button type="button" class="card full" onclick="liveDetail('${safeId(asset.id)}')">
    <strong>${esc(asset.name)}</strong><br>
    <small>${esc(asset.inventory_number)} · ${esc(locationOf(asset))}</small><br>
    <span class="badge warn">${esc(cond(asset.condition))}</span>
   </button>`).join('') || '<p>Немає майна за цими параметрами.</p>';
+ for (const button of container.querySelectorAll('[data-import-id]')) {
+   button.onclick = () => openImportedCatalogCard(Number(button.dataset.importId));
+ }
+ if (results.length>catalogVisible) {
+   const more=document.createElement('button');
+   more.className='full';
+   more.textContent='Показати ще';
+   more.onclick=()=>{catalogVisible+=100;liveResults();};
+   container.append(more);
+ }
 }
 
 function catalogFilter(key, value) {
  catalog[key] = value;
+ catalogVisible=100;
  liveResults();
 }
 
+async function loadImportedCatalog(target) {
+ try {
+   const rows=[];
+   let cursor=0;
+   for (;;) {
+     const batch=await take(db.rpc('stage_import_catalog_page',{p_after:cursor}));
+     if (!target.isConnected) return;
+     rows.push(...batch);
+     if (batch.length<250) break;
+     const next=Number(batch.at(-1).import_id);
+     if (!Number.isSafeInteger(next) || next<=cursor) throw Error('Некоректна сторінка каталогу');
+     cursor=next;
+   }
+   importedCatalog=rows.map(row=>({...row, condition:'unverified'}));
+   target.textContent='';
+   liveResults();
+ } catch (error) {
+   if (target.isConnected) target.textContent='Імпортовані позиції тимчасово недоступні.';
+ }
+}
+function openImportedCatalogCard(id) {
+ const row=importedCatalog.find(item=>Number(item.import_id)===id);
+ if (!row) return;
+ page='detail';
+ document.body.dataset.page='detail';
+ app.innerHTML=`<button class="back" onclick="go('catalog')">← Каталог</button>
+  <h1>${esc(row.name)}</h1><p>${esc(row.inventory_number)} · Не перевірено</p>
+  ${[['Кількість',row.quantity],['Одиниця',row.unit],['Тип обліку',importTypeLabels[row.tracking_type]],
+    ['Категорія за джерелом',row.category_hint],['Шоу за джерелом',row.show_hint],
+    ['Склад за джерелом',row.warehouse_hint],['Опис',row.description],['Примітка',row.notes]]
+    .map(([label,value])=>`<p><strong>${label}</strong><br>${esc(value ?? 'Потребує уточнення')}</p>`).join('')}`;
+ if (intakeRole()) {
+   const button=document.createElement('button');
+   button.className='full';
+   button.textContent='Уточнити для фізичної перевірки';
+   button.onclick=()=>resolveImportItem({...row,id:row.import_id,fromCatalog:true});
+   app.append(button);
+ }
+ scrollTo(0,0);
+}
 function renderCatalog() {
+ importedCatalog=[];
+ catalogVisible=100;
  const selectRefs = (key, table, label) =>
   `<label>${label}<select onchange="catalogFilter('${key}',this.value)">
    ${optionIds(table, catalog[key]).replace('>—<', '>Усі<')}
@@ -263,8 +322,13 @@ function renderCatalog() {
    <option value="list" ${catalog.layout === 'list' ? 'selected' : ''}>Список</option>
   </select></label>
   ${createOK() ? '<button class="primary full" onclick="liveForm()">＋ Додати майно</button>' : ''}
-  <p id="livecount" aria-live="polite"></p><div id="liveresults"></div>`;
+  <p id="import-catalog-status" aria-live="polite"></p><p id="livecount" aria-live="polite"></p><div id="liveresults"></div>`;
  liveResults();
+ if (canSeeImportedCatalog()) {
+   const status=document.querySelector('#import-catalog-status');
+   status.textContent='Завантаження імпортованих позицій…';
+   loadImportedCatalog(status);
+ }
 }
 function liveDetail(id){active=records.find(a=>a.id===id);if(active)go('detail')}
 function liveForm(a){const f=(n,l,type='text')=>'<label>'+l+'<input name="'+n+'" type="'+type+'" '+(type==='number'?'min="0" step="any"':'')+' value="'+esc(a?.[n]??'')+'"></label>';form(a?'Редагування':'Нове майно',(a?'':f('inventory_number','Інвентарний номер (обов’язково)'))+f('name','Назва (обов’язково)')+f('description','Опис')+'<label>Категорія<select name="category_id">'+optionIds('categories',a?.category_id)+'</select></label>'+(a?'':'<label>Шоу<select name="show_id">'+optionIds('shows')+'</select></label><label>Склад<select name="warehouse_id" required>'+optionIds('warehouses',null,false)+'</select></label>')+ (a?'':'<label>Тип обліку<select name="tracking_type"><option value="individual">Окремий предмет</option><option value="set">Комплект</option><option value="consumable">Витратний матеріал</option></select></label><label>Кількість<input type="number" name="quantity" min="0.001" step="any" value="1" required></label><label>Одиниця вимірювання<input name="unit" value="шт." required></label>')+f('color','Колір')+f('material','Матеріал')+f('width_cm','Ширина, см','number')+f('height_cm','Висота, см','number')+f('depth_cm','Глибина, см','number')+f('weight_kg','Вага, кг','number')+f('notes','Коментар'),async d=>{if(busy)return false;busy=true;try{const v=Object.fromEntries(d);if(!v.name.trim()||(!a&&!v.inventory_number.trim()))throw Error('Заповніть назву та номер');for(const k of ['width_cm','height_cm','depth_cm','weight_kg'])v[k]=v[k]===''?null:Number(v[k]);v.category_id=v.category_id||null;if(!a){v.quantity=Number(v.quantity);if(v.tracking_type!=='consumable'&&v.quantity!==1)throw Error('Окремі предмети та комплекти обліковуються по одному');v.show_id=v.show_id||null;v.original_show_id=v.show_id;const row=await take(db.from('assets').insert(v).select('id').single());await loadLive();active=records.find(x=>x.id===row.id)}else{await take(db.from('assets').update(v).eq('id',a.id).select('id').single());await loadLive();active=records.find(x=>x.id===a.id)}page='detail';toast('Збережено в базі')}catch(e){fail(e);return false}finally{busy=false}})}
